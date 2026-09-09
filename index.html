@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZJU-Course</title>
+<script>
+/* 首帧前套用主题，避免暗色用户看到白屏闪烁 */
+(function () {
+  var t = localStorage.getItem("zc-theme") || "system";
+  if (t === "system")
+    t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.dataset.theme = t;
+})();
+</script>
+<style>
+  :root { --bg:#f5f7fa; --card:#fff; --line:#e5e9f0; --text:#1f2937;
+          --muted:#6b7280; --blue:#2563eb; --green:#16a34a; --red:#dc2626;
+          --amber:#d97706;
+          --soft:#f1f5f9; --hover:#eff6ff; --hoverbd:#dbeafe;
+          color-scheme:light;
+          --font:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; }
+  * { box-sizing: border-box; }
+  button, input, select, textarea { font-family:inherit; }
+  body { margin:0; font-family:var(--font); color:var(--text);
+         background-color:var(--bg);
+         background-image:
+           radial-gradient(1100px 480px at 15% -8%, rgba(37,99,235,.07), transparent 60%),
+           radial-gradient(900px 420px at 88% -6%, rgba(22,163,74,.06), transparent 55%);
+         background-repeat:no-repeat;
+         background-attachment:fixed; }
+  ::selection { background:rgba(37,99,235,.16); }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(100,116,139,.3); border-radius:999px;
+                              border:2px solid transparent; background-clip:content-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color:rgba(100,116,139,.5); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px;
+            flex-wrap:wrap; margin-bottom:16px; }
+  .topbar h1, .login-card h2 { font-family:var(--font); font-size:24px; font-weight:800;
+                               letter-spacing:.3px; margin:0; }
+  .topbar .tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  select, .btn { border:1px solid var(--line); background:var(--card); color:var(--text);
+                 padding:8px 12px; border-radius:8px; cursor:pointer; font-size:14px;
+                 height:38px; transition:border-color .15s, color .15s, background .15s,
+                             box-shadow .15s, transform .12s; }
+  .topbar .tools select, .topbar .tools .btn { min-width:96px; }
+  .btn:hover { border-color:var(--blue); color:var(--blue);
+               transform:translateY(-1px); box-shadow:0 3px 10px rgba(15,23,42,.07); }
+  select:hover { border-color:var(--blue); color:var(--blue); }
+  .btn:active { transform:translateY(0) scale(.97); box-shadow:none; }
+  .btn.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .btn.primary:hover { background:#1d4ed8; border-color:#1d4ed8; }
+  .btn:focus-visible, select:focus-visible, .toc-item:focus-visible,
+  input:focus-visible { outline:2px solid rgba(37,99,235,.45); outline-offset:1px; }
+  .hint { font-size:12px; color:var(--muted); }
+
+  /* ---------- 灵动增强 ---------- */
+
+  /* 1) 背景缓慢漂浮的彩色光晕 */
+  .bg-orbs { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  .bg-orbs i { position:absolute; border-radius:50%; will-change:transform; }
+  .bg-orbs i.o1 { width:520px; height:520px; left:-160px; top:-160px;
+                  background:radial-gradient(circle, rgba(37,99,235,.16), rgba(37,99,235,0) 70%);
+                  animation:orbDrift 30s ease-in-out infinite alternate; }
+  .bg-orbs i.o2 { width:460px; height:460px; right:-150px; top:16%;
+                  background:radial-gradient(circle, rgba(22,163,74,.13), rgba(22,163,74,0) 70%);
+                  animation:orbDrift 38s ease-in-out infinite alternate-reverse; }
+  .bg-orbs i.o3 { width:400px; height:400px; left:28%; bottom:-190px;
+                  background:radial-gradient(circle, rgba(124,58,237,.10), rgba(124,58,237,0) 70%);
+                  animation:orbDrift 46s ease-in-out infinite alternate; }
+  @keyframes orbDrift { from { transform:translate(0,0) scale(1); }
+                        to   { transform:translate(46px,34px) scale(1.14); } }
+
+  /* 2) 标题：同色系淡蓝渐变，克制不艳 */
+  .topbar h1, .login-card h2 {
+    background:linear-gradient(90deg, #1e40af, #2563eb 60%, #3b82f6);
+    -webkit-background-clip:text; background-clip:text;
+    color:transparent; -webkit-text-fill-color:transparent;
+  }
+
+  /* 3) 加载骨架屏（静态灰条 + 白色扫光） */
+  .skel { display:flex; flex-direction:column; gap:10px; }
+  .sk-card { position:relative; overflow:hidden; background:var(--card); border:1px solid var(--line);
+             border-radius:10px; padding:14px; }
+  .sk-card .sk-b { height:11px; border-radius:6px; background:var(--soft); margin-bottom:9px; }
+  .sk-card .sk-b:last-child { margin-bottom:0; }
+  .sk-card::after { content:""; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(105deg, transparent 42%, rgba(255,255,255,.8) 50%, transparent 58%);
+      transform:translateX(-130%); animation:skSweep 1.4s ease infinite; }
+  @keyframes skSweep { to { transform:translateX(130%); } }
+
+  /* 4) 选择文件：隐藏原生控件 → 按钮 + 已选小标签 */
+  .submit .pick { display:inline-flex; align-items:center; gap:6px; position:relative;
+                  overflow:hidden; color:var(--blue); border-style:dashed;
+                  border-color:var(--line); background:var(--card); }
+  .submit .pick:hover { border-color:var(--blue); background:var(--hover); }
+  .submit .pick input[type=file] { position:absolute; inset:0; width:100%; height:100%;
+                                   opacity:0; cursor:pointer; }
+  .chips { flex-basis:100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+           margin-top:2px; }
+  .chips[hidden] { display:none; }
+  .chip { display:inline-flex; align-items:center; gap:5px; background:var(--soft);
+          border:1px solid var(--line); border-radius:8px; padding:3px 9px; font-size:12px;
+          color:var(--text); max-width:260px; animation:riseIn .18s ease both; }
+  .chip .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chips-clear { border:0; background:none; color:var(--muted); cursor:pointer;
+                 font-size:12px; padding:2px 7px; border-radius:6px; }
+  .chips-clear:hover { color:var(--red); background:#fef2f2; }
+
+  /* 5) 课程卡片上的作业小统计 */
+  .cstats { display:flex; gap:6px; flex-wrap:wrap; margin-top:7px; }
+  .cstat { font-size:11px; color:var(--muted); background:var(--soft); border:1px solid var(--line);
+           border-radius:999px; padding:1px 9px; }
+  .cstat.hot { color:#b45309; background:#fffbeb; border-color:#fde68a; }
+  .cstat.ok { color:var(--green); background:#f0fdf4; border-color:#bbf7d0; }
+
+  /* 6) 截止 24 小时内：红色提醒 + 轻闪 */
+  @keyframes cdBlink { 50% { opacity:.35; } }
+  .ddl.soon b, .ddl.soon .cd { color:var(--red); font-weight:600; }
+  .ddl.soon .cd { animation:cdBlink 1.9s ease-in-out infinite; }
+
+  /* 7) 主按钮渐变立体 + 图标旋转 */
+  .btn.primary { background:linear-gradient(135deg,#3b82f6,#2563eb);
+                 border-color:transparent; box-shadow:0 3px 10px rgba(37,99,235,.22); }
+  .btn.primary:hover { filter:brightness(1.06); box-shadow:0 5px 15px rgba(37,99,235,.32); }
+  .btn.primary:active { filter:brightness(.97); }
+  .ic { display:inline-block; transition:transform .5s ease; }
+  #refreshBtn:hover .ic { transform:rotate(240deg); }
+
+  /* 8) 卡片悬停光泽扫过 */
+  .course, .hw2 { position:relative; overflow:hidden; }
+  .course::after, .hw2::after { content:""; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(105deg, transparent 44%, rgba(255,255,255,.6) 50%, transparent 56%);
+      transform:translateX(-140%); }
+  .course:hover::after, .hw2:hover::after { animation:cardSheen .55s ease; }
+  @keyframes cardSheen { to { transform:translateX(140%); } }
+
+  /* 9) 空状态大图标 */
+  .empty-big { display:flex; flex-direction:column; align-items:center; gap:8px;
+               padding:26px 10px; color:var(--muted); font-size:13px;
+               animation:riseIn .25s ease both; }
+  .empty-big .eb-ic { width:52px; height:52px; border-radius:50%; display:flex;
+                      align-items:center; justify-content:center; font-size:24px;
+                      background:var(--soft); border:1px solid var(--line); }
+
+  /* 入场动画：页面/数据刷新时逐条浮现，让界面更灵动 */
+  @keyframes riseIn { from { opacity:0; transform:translateY(8px); }
+                      to   { opacity:1; transform:none; } }
+  @keyframes pageIn { from { opacity:0; transform:translateY(10px); }
+                      to   { opacity:1; transform:none; } }
+  #login { animation:pageIn .35s ease both; }
+  #app.wrap { animation:pageIn .32s ease both; }
+
+  /* 登录卡片 */
+  #login { min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .login-card { position:relative; background:var(--card); padding:32px; border-radius:14px; width:360px;
+                box-shadow:0 8px 30px rgba(0,0,0,.08); }
+  .login-card .theme-mini { position:absolute; top:14px; right:14px; height:auto;
+                            padding:4px 10px; font-size:12px; min-width:0; }
+  .login-card h2 { margin:0 0 14px; }
+  .login-card p.sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
+  .login-card label { display:block; font-size:13px; margin:12px 0 6px; color:var(--muted); }
+  .login-card input { width:100%; padding:10px 12px; border:1px solid var(--line);
+                      border-radius:8px; font-size:14px; }
+  .login-card .err { color:var(--red); font-size:13px; min-height:18px; margin-top:10px; }
+  .login-card .primary { width:100%; margin-top:14px; padding:11px; }
+  .safe-note { margin-top:16px; padding:10px 12px; background:#f0fdf4; border:1px solid #bbf7d0;
+               border-radius:8px; font-size:12px; color:var(--green); line-height:1.6; }
+
+  /* 面板 */
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .grid .col { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .grid .col .panel { flex:1; }
+  /* 主页固定为一屏高：左侧课程、右侧作业各自框内滚动，页面整体不再滚动 */
+  @media (min-width: 861px) {
+    #app.wrap { height:100vh; display:flex; flex-direction:column;
+                overflow:hidden; padding:18px 24px 20px; }
+    #app .grid { flex:1; min-height:0; align-items:stretch;
+                 grid-template-rows: minmax(0, 1fr); }
+    #app .grid .col, #app .grid > .panel { min-height:0; }
+    #app .panel { display:flex; flex-direction:column; overflow:hidden; }
+    #app .panel h3 { flex:none; }
+    #app #courses, #app #homeworks { flex:1; min-height:0; overflow-y:auto;
+                                     overscroll-behavior:contain; padding-right:6px; }
+    #app #courses::-webkit-scrollbar, #app #homeworks::-webkit-scrollbar { width:8px; }
+    #app #courses::-webkit-scrollbar-thumb,
+    #app #homeworks::-webkit-scrollbar-thumb {
+      background:var(--line); border-radius:99px; }
+    #app #courses::-webkit-scrollbar-thumb:hover,
+    #app #homeworks::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+  }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .panel h3 { margin:0 0 12px; font-size:16px; display:flex; justify-content:space-between;
+              align-items:center; gap:8px; flex-wrap:wrap; }
+  .panel h3 .hd-tools { display:flex; align-items:center; gap:8px; }
+  .panel h3 select { height:30px; padding:4px 8px; font-size:13px; border-radius:7px;
+                     max-width:170px; }
+  #courseSearch { width:100%; padding:10px 14px; border:1px solid var(--line);
+                  border-radius:10px; font-size:14px; background:var(--card); color:var(--text);
+                  outline:none; transition:border-color .15s, box-shadow .15s; }
+  #courseSearch:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+  .count { font-size:12px; font-weight:400; color:var(--muted); }
+
+  .course { padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+            margin-bottom:10px; cursor:pointer; background:var(--card);
+            transition:border-color .15s, box-shadow .18s, transform .15s;
+            animation:riseIn .3s ease both; }
+  .course:hover { border-color:#bfdbfe; transform:translateY(-2px);
+                  box-shadow:0 8px 20px rgba(37,99,235,.10); }
+  .course .go { display:inline-block; transition:transform .18s, color .18s; }
+  .course:hover .go { transform:translateX(3px); color:var(--blue); }
+  .course .name { font-weight:600; }
+  .course .meta { color:var(--muted); font-size:12px; margin-top:4px;
+                  display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .sem-tag { display:inline-block; font-size:11px; padding:1px 8px; border-radius:999px;
+             background:var(--hover); color:var(--blue); }
+  .sem-tag.active { background:#dcfce7; color:var(--green); }
+
+  .hw { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px;
+        background:var(--card); animation:riseIn .3s ease both;
+        transition:box-shadow .18s, transform .15s, border-color .15s; }
+  .hw:hover { border-color:var(--hoverbd); box-shadow:0 6px 16px rgba(37,99,235,.07); }
+  .hw .title { font-weight:600; }
+  .hw .course { color:var(--blue); font-size:13px; margin:4px 0; }
+  .hw .ddl { font-size:13px; }
+  .hw .ddl b { color:var(--amber); }
+  .hw .ddl.over b { color:var(--red); }
+  .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; margin-left:8px; }
+  .badge.ok { background:#dcfce7; color:var(--green); }
+  .badge.no { background:#fee2e2; color:var(--red); }
+  .badge.past { background:var(--line); color:var(--muted); }
+  .badge.soon { background:#fee2e2; color:var(--red); font-weight:600;
+                animation:cdBlink 1.9s ease-in-out infinite; }
+  /* 截止前提醒：未提交且临近截止的作业卡片红色高亮 */
+  .hw.remind, .hw2.remind { border-color:#fca5a5;
+    background:linear-gradient(180deg,#fff6f6,var(--card) 72%); }
+  .hw.remind { border-left:3px solid var(--red); }
+  .hw2.remind { border-left:3px solid var(--red); }
+  .hw.remind .ddl b, .hw2.remind .ddl b { color:var(--red); }
+  /* 设置里的开关 */
+  .switch { position:relative; display:inline-block; width:42px; height:24px;
+            flex:none; cursor:pointer; }
+  .switch input { opacity:0; width:0; height:0; }
+  .switch span { position:absolute; inset:0; background:var(--line);
+                 border-radius:999px; transition:background .18s; }
+  .switch span::after { content:""; position:absolute; top:3px; left:3px;
+    width:18px; height:18px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .18s; }
+  .switch input:checked + span { background:var(--green); }
+  .switch input:checked + span::after { transform:translateX(18px); }
+  .hw .desc { font-size:13px; color:var(--muted); margin:8px 0; }
+  .hw .desc p, .hw .desc ul, .hw .desc ol { margin:6px 0; }
+  .hw .desc p:first-child, .hw .desc ul:first-child, .hw .desc ol:first-child { margin-top:0; }
+  .hw .desc p:last-child, .hw .desc ul:last-child, .hw .desc ol:last-child { margin-bottom:0; }
+  .hw .submit { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+  .hw .submit input[type=file]{ font-size:12px; }
+  .hw2 .submit { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .hw2 .submit input[type=file]{ font-size:12px; }
+  .submit-msg { flex-basis:100%; font-size:13px; margin-top:2px; word-break:break-word; }
+  .submit-msg.ok { color:var(--green); }
+  .submit-msg.err { color:var(--red); }
+  .submit-msg.busy { color:var(--muted); }
+  /* 提交备注输入框（随作业一起提交给老师） */
+  .hw-note { flex-basis:100%; min-height:54px; max-height:140px; resize:vertical;
+             font:inherit; font-size:13px; border:1px solid var(--line); border-radius:10px;
+             padding:8px 11px; background:var(--card); transition:border-color .15s, box-shadow .15s; }
+  .hw-note:focus { outline:none; border-color:var(--blue); background:var(--card);
+                   box-shadow:0 0 0 3px rgba(37,99,235,.08); }
+  .hw-note::placeholder { color:var(--muted); }
+  /* 「仅显示最后一次提交」提示 */
+  .submit-hint { flex-basis:100%; display:flex; align-items:center; gap:5px;
+                 font-size:12px; color:var(--muted); }
+  .view-sub { margin-top:8px; }
+  .hw-grp { margin-bottom:18px; }
+  .hw-grp:last-child { margin-bottom:0; }
+  .hw-grp-title { font-size:14px; font-weight:700; color:var(--green); margin:0 0 8px;
+                  display:flex; align-items:center; gap:8px; }
+  .hw-grp-title .count { font-size:12px; font-weight:400; color:var(--muted);
+                         background:var(--line); border-radius:999px; padding:1px 8px; }
+  .subver-list { flex-basis:100%; margin-top:6px; min-width:0; }
+  .subver { border:1px solid #bbf7d0; border-radius:10px; margin-top:8px; background:var(--card);
+            overflow:hidden; }
+  .subver.latest { border-color:#6ee7b7; }
+  .subver-head { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center;
+                 cursor:pointer; padding:9px 12px; font-size:13px; user-select:none;
+                 background:#ecfdf5; list-style:none; }
+  .subver-head::-webkit-details-marker { display:none; }
+  .subver-head::before { content:"▸"; transition:transform .15s; color:var(--muted); font-size:11px; }
+  .subver[open] .subver-head::before { transform:rotate(90deg); }
+  .subver.latest .subver-head { background:#d1fae5; }
+  .subver-label { font-weight:600; color:var(--green); }
+  .subver-time { color:var(--muted); }
+  .subver-body { padding:10px 12px 4px; }
+  .subver-body .subcomment { background:var(--card); border:1px solid var(--line); border-radius:8px;
+                             padding:6px 10px; margin-bottom:8px; color:var(--text); }
+  /* 留言是富文本 HTML（safeHtml 净化后渲染）：段落间距、图片/表格防溢出 */
+  .subcomment .sc-label { font-weight:600; margin-right:2px; }
+  .subcomment p { margin:0 0 6px; }
+  .subcomment p:last-child { margin-bottom:0; }
+  .subcomment img { max-width:100%; height:auto; }
+  .subcomment table { border-collapse:collapse; max-width:100%; }
+  .subcomment td, .subcomment th { border:1px solid var(--line); padding:3px 6px; }
+  .empty { color:var(--muted); font-size:13px; animation:riseIn .25s ease both; }
+
+  /* 文件在线预览——居中方形窗口（无顶栏，关闭钮悬浮右上，内容即窗口） */
+  @keyframes pvFade { from { opacity:0; } to { opacity:1; } }
+  @keyframes pvPop { from { opacity:0; transform:scale(.94) translateY(10px); }
+                     to { opacity:1; transform:scale(1) translateY(0); } }
+  @keyframes pvSpin { to { transform:rotate(360deg); } }
+  .pv-mask { position:fixed; inset:0; z-index:300; background:rgba(15,23,42,.66);
+             display:flex; align-items:center; justify-content:center;
+             padding:4vh 3vw; animation:pvFade .16s ease; }
+  .pv-win { position:relative; width:min(94vw, 980px); height:min(88vh, 780px);
+            background:var(--card); border-radius:18px; overflow:hidden;
+            box-shadow:0 30px 90px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.25);
+            animation:pvPop .22s cubic-bezier(.3,1.35,.4,1); }
+  /* 关闭按钮悬浮在窗口外侧、紧贴上沿右上角（不遮挡 PDF 工具栏） */
+  .pv-close { position:absolute;
+              top:calc(50% - min(44vh, 390px) - 44px);
+              right:calc(50% - min(47vw, 490px) + 10px);
+              z-index:5; width:34px; height:34px;
+              border:0; border-radius:50%; cursor:pointer; font-size:16px; line-height:1;
+              color:#fff; background:rgba(17,24,39,.5); display:flex; align-items:center;
+              justify-content:center; transition:background .15s, transform .2s; }
+  .pv-close:hover { background:rgba(220,38,38,.92); transform:rotate(90deg); }
+  .pv-body { position:absolute; inset:0; display:flex; align-items:center;
+             justify-content:center; background:var(--card); }
+  .pv-body img { max-width:100%; max-height:100%; object-fit:contain; }
+  .pv-body iframe { width:100%; height:100%; border:0; background:var(--card); }
+  .pv-loading { display:flex; align-items:center; gap:10px; color:var(--text); font-size:15px; }
+  /* txt/md 等纯文本预览：等宽字体 + 自动换行，超长滚动 */
+  .pv-text { position:absolute; inset:0; overflow:auto; margin:0; padding:18px 22px;
+             font:14px/1.7 Consolas,"Courier New","Microsoft YaHei",monospace;
+             color:var(--text); background:var(--card);
+             white-space:pre-wrap; word-break:break-word; }
+  .pv-loading .spinner { width:18px; height:18px; border-radius:50%;
+                         border:2.5px solid var(--line); border-top-color:#3b82f6;
+                         animation:pvSpin .7s linear infinite; }
+  /* 窗口内底部悬浮药丸：文件名 + 下载 */
+  .pv-cap { position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+            z-index:5; display:flex; align-items:center; gap:10px; max-width:82%;
+            background:rgba(17,24,39,.62); color:#fff; border-radius:999px;
+            padding:6px 8px 6px 16px; font-size:12.5px;
+            backdrop-filter:blur(6px); box-shadow:0 6px 20px rgba(0,0,0,.28);
+            animation:pvFade .2s ease; }
+  .pv-cap .pv-cap-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pv-cap .pv-cap-dl { border:0; border-radius:999px; background:rgba(255,255,255,.22);
+                       color:#fff; padding:4px 12px; cursor:pointer; font-size:12px;
+                       transition:background .15s; }
+  .pv-cap .pv-cap-dl:hover { background:rgba(255,255,255,.38); }
+
+  /* 课程详情浮窗：大窗口直接盖在主页上（类似文件预览），主页留底层可随时返回 */
+  .course-mask { position:fixed; inset:0; z-index:200; background:rgba(15,23,42,.55);
+                 display:flex; align-items:center; justify-content:center;
+                 padding:3vh 2.5vw; animation:pvFade .16s ease; }
+  .course-win { position:relative; width:min(96vw,1200px); height:min(92vh,880px);
+                background:var(--bg); border-radius:18px; overflow:hidden;
+                display:flex; flex-direction:column;
+                box-shadow:0 30px 90px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.22);
+                animation:pvPop .22s cubic-bezier(.3,1.35,.4,1); }
+  .course-top { flex:none; display:flex; align-items:center; justify-content:space-between;
+                gap:12px; padding:12px 14px 12px 22px; background:var(--card);
+                border-bottom:1px solid var(--line); }
+  .course-top .course-t { min-width:0; }
+  .course-top h1 { margin:0; font-size:19px; font-weight:800; letter-spacing:.3px;
+                   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                   background:linear-gradient(90deg,#1e40af,#2563eb 60%,#3b82f6);
+                   -webkit-background-clip:text; background-clip:text; color:transparent;
+                   -webkit-text-fill-color:transparent; }
+  .course-top .hint { margin:2px 0 0; }
+  .course-close { width:34px; height:34px; flex:none; border:0; border-radius:50%;
+                  cursor:pointer; font-size:15px; color:#fff; background:rgba(17,24,39,.5);
+                  display:flex; align-items:center; justify-content:center;
+                  transition:background .15s, transform .2s; }
+  .course-close:hover { background:rgba(220,38,38,.92); transform:rotate(90deg); }
+  .course-body { flex:1 1 auto; min-height:0; overflow:auto; padding:16px 22px 24px; }
+  @media (max-width:640px) {
+    .course-mask { padding:0; }
+    .course-win { width:100vw; height:100vh; border-radius:0; }
+  }
+
+  /* 设置浮窗：紧凑小窗，头部样式沿用 course-top */
+  .settings-win { position:relative; width:min(92vw,520px); max-height:86vh;
+                  background:var(--card); border-radius:18px; overflow:hidden;
+                  display:flex; flex-direction:column;
+                  box-shadow:0 30px 90px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.22);
+                  animation:pvPop .22s cubic-bezier(.3,1.35,.4,1); }
+  .settings-body { padding:16px 22px 22px; overflow:auto; }
+  .set-sec { display:flex; align-items:center; gap:10px; font-size:12.5px;
+             font-weight:700; color:var(--muted); letter-spacing:.4px;
+             margin:14px 0 4px; }
+  .set-sec:first-child { margin-top:0; }
+  .set-sec::after { content:""; flex:1; height:1px; background:var(--line); }
+  .set-row { display:flex; align-items:center; justify-content:space-between;
+             gap:12px; padding:10px 0; }
+  .set-row .set-name { font-size:14px; font-weight:600; }
+  .set-row .set-desc { font-size:12px; color:var(--muted); margin-top:2px; }
+  /* 右下角轻提示（下载进度反馈等），自动消失，不打断操作 */
+  #toastWrap { position:fixed; right:18px; bottom:18px; z-index:9999;
+    display:flex; flex-direction:column; gap:8px; max-width:min(420px, 80vw); pointer-events:none; }
+  .toast { background:var(--card); color:var(--text); border:1px solid var(--line);
+    border-left:4px solid var(--blue); border-radius:10px; padding:10px 14px;
+    font-size:13px; line-height:1.5; box-shadow:0 6px 24px rgba(15,23,42,.18);
+    word-break:break-all; animation:toastIn .25s ease both; }
+  .toast.ok { border-left-color:var(--green); }
+  .toast.err { border-left-color:var(--red); }
+  .toast.out { animation:toastOut .3s ease both; }
+  @keyframes toastIn { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:none; } }
+  @keyframes toastOut { to { opacity:0; transform:translateX(24px); } }
+  .seg { display:inline-flex; flex:none; background:var(--soft);
+         border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px; }
+  .seg button { border:0; background:none; cursor:pointer; font-size:13px;
+                color:var(--muted); padding:6px 13px; border-radius:8px;
+                transition:background .15s, color .15s, box-shadow .15s; }
+  .seg button:hover { color:var(--text); }
+  .seg button.active { background:var(--card); color:var(--blue); font-weight:700;
+                       box-shadow:0 1px 4px rgba(15,23,42,.12); }
+  .chapter { border:1px solid var(--line); border-radius:12px; margin-bottom:16px;
+             background:var(--card); overflow:hidden; animation:riseIn .3s ease both; }
+  .chapter-head { display:flex; align-items:center; gap:10px; padding:14px 16px;
+                  cursor:pointer; user-select:none; }
+  .chapter-head:hover { background:var(--soft); }
+  .chapter-head .chev { transition:transform .15s; font-size:12px; color:var(--muted); }
+  .chapter-head.open .chev { transform:rotate(90deg); }
+  .chapter-head h4 { margin:0; font-size:15px; }
+  .chapter-head .cnt { margin-left:auto; font-size:12px; color:var(--muted); }
+  .chapter-body { padding:0 16px 16px; }
+  .chapter-body[hidden] { display:none; }
+  .act { border-top:1px dashed var(--line); }
+  .act:first-child { border-top:none; }
+  .act-head { display:flex; align-items:center; gap:8px; padding:10px 0; cursor:pointer; user-select:none; }
+  .act-head:hover { color:var(--blue); }
+  .act-head .chev { transition:transform .15s; font-size:10px; color:var(--muted); }
+  .act-head.open .chev { transform:rotate(90deg); }
+  .act-title { font-size:13px; font-weight:600; color:var(--text); }
+  .act-files { padding:0 0 12px 16px; }
+  .act-files[hidden] { display:none; }
+  .file { display:flex; align-items:center; justify-content:space-between; gap:10px;
+          padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
+  .file .fname { font-size:14px; word-break:break-word; }
+  .file .ftype { font-size:11px; color:var(--muted); margin-left:6px; }
+  .file .dl { border:1px solid var(--blue); color:var(--blue); background:var(--card);
+              border-radius:8px; padding:6px 12px; cursor:pointer; font-size:13px; white-space:nowrap;
+              transition:background .15s, color .15s, transform .12s, box-shadow .15s; }
+  .file .dl:hover { background:var(--blue); color:#fff;
+                    transform:translateY(-1px); box-shadow:0 3px 8px rgba(37,99,235,.25); }
+  .file .dl:active { transform:scale(.96); }
+  .file .dl.pv { border-color:var(--green); color:var(--green); }
+  .file .dl.pv:hover { background:var(--green); color:#fff; }
+
+  /* 课程详情：作业区块 */
+  .detail-sec { margin-bottom:22px; }
+  .sec-title { font-size:16px; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+  .sec-title .toggle { margin-left:auto; font-size:12px; color:var(--blue); cursor:pointer;
+                       border:1px solid var(--blue); border-radius:999px; padding:3px 10px; background:var(--card); }
+  .sec-title .toggle:hover { background:var(--blue); color:#fff; }
+  .hw2 { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px;
+         background:var(--card); animation:riseIn .28s ease both;
+         transition:box-shadow .18s, transform .15s; }
+  .hw2:hover { transform:translateY(-1px); box-shadow:0 6px 16px rgba(37,99,235,.07); }
+  .hw2.done { border-left:3px solid var(--green); }
+  .hw2.todo { border-left:3px solid #f59e0b; }
+  .hw2 .t { font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .hw2 .ddl { font-size:13px; color:var(--muted); margin-top:4px; }
+  .hw2 .ddl.over b { color:var(--red); }
+  .hw2 .desc { font-size:13px; color:var(--text); margin:8px 0; word-break:break-word; }
+  .hw2 .desc p, .hw2 .desc ul, .hw2 .desc ol { margin:6px 0; }
+  .hw2 .desc p:first-child, .hw2 .desc ul:first-child, .hw2 .desc ol:first-child { margin-top:0; }
+  .hw2 .desc p:last-child, .hw2 .desc ul:last-child, .hw2 .desc ol:last-child { margin-bottom:0; }
+  .hw2 .blk-title { font-size:12px; color:var(--muted); margin:10px 0 6px; }
+  .subinfo { margin-top:10px; padding:10px 12px; background:#f0fdf4; border:1px solid #bbf7d0;
+             border-radius:10px; font-size:13px; color:var(--green); display:flex; flex-wrap:wrap; gap:6px 18px; }
+  .subinfo .subcomment { flex-basis:100%; color:#15803d; background:var(--card); border-radius:8px;
+                         padding:6px 10px; margin-top:4px; }
+  .grade-tag { background:var(--card); border:1px solid #86efac; border-radius:8px; padding:2px 8px; }
+
+  /* 课程详情：左侧大纲目录 */
+  .detail-layout { display:flex; gap:20px; align-items:flex-start; }
+  .detail-toc { position:sticky; top:8px; flex:0 0 220px; align-self:flex-start;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 8px;
+    max-height:calc(92vh - 210px); overflow:auto; }
+  .detail-toc .toc-h { font-size:12px; color:var(--muted); margin:4px 8px 8px; }
+  .toc-item { display:block; width:100%; text-align:left; border:none; background:none;
+    color:var(--text); font-size:13px; padding:6px 8px; border-radius:8px; cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .toc-item:hover { background:var(--soft); }
+  .toc-item.active { background:var(--hover); color:var(--blue); font-weight:600; }
+  .toc-item .tdot { color:var(--muted); margin-right:6px; font-size:10px; }
+  .toc-item .tchev { display:inline-block; transition:transform .15s; font-size:10px;
+                     color:var(--muted); margin-right:6px; }
+  .toc-item.open .tchev { transform:rotate(90deg); }
+  .toc-item.toc-act { padding-left:22px; font-size:12px; color:var(--text); }
+  .toc-item.toc-act .tchev { margin-right:5px; font-size:9px; }
+  /* 章节折叠时，其下挂的小标题在目录里也要隐藏（button 默认不认 hidden） */
+  .toc-item[hidden] { display:none; }
+  .detail-content { flex:1 1 auto; min-width:0; }
+  @media (max-width: 760px) {
+    .detail-layout { flex-direction:column; }
+    .detail-toc { position:static; flex-basis:auto; width:100%; max-height:none; }
+  }
+
+  /* 11) 成绩查询：学期绩点卡 + 成绩列表 */
+  .g-tool { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .g-ana { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+  /* 学期绩点卡：左侧色条 + 按绩点档位着色的柔和渐变底 */
+  .g-ana-card { --ac:var(--muted); flex:1 1 150px; max-width:230px; position:relative; overflow:hidden;
+                background:linear-gradient(180deg,#fbfdff,#fff 70%); border:1px solid var(--line);
+                border-radius:14px; padding:11px 14px 12px 17px; box-shadow:0 1px 2px rgba(15,23,42,.04);
+                animation:riseIn .3s ease both; transition:transform .15s, box-shadow .18s; }
+  .g-ana-card::before { content:""; position:absolute; left:0; top:10px; bottom:10px; width:4px;
+                        border-radius:0 4px 4px 0; background:var(--ac); opacity:.9; }
+  .g-ana-card::after { content:""; position:absolute; right:-26px; top:-26px; width:74px; height:74px;
+                       border-radius:50%; background:var(--ac); opacity:.07; pointer-events:none; }
+  .g-ana-card:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(37,99,235,.10); }
+  .g-ana-card.c-g { --ac:#16a34a; background:linear-gradient(180deg,#f2fbf5,#fff 75%); border-color:#d3eedd; }
+  .g-ana-card.c-b { --ac:#2563eb; background:linear-gradient(180deg,#f2f7ff,#fff 75%); border-color:#dbe8fb; }
+  .g-ana-card.c-a { --ac:#d97706; background:linear-gradient(180deg,#fdf8ef,#fff 75%); border-color:#f3e3c3; }
+  .g-ana-card.c-r { --ac:#dc2626; background:linear-gradient(180deg,#fdf3f2,#fff 75%); border-color:#f5d5d3; }
+  .g-ana-card.c-total { --ac:#2563eb;
+    background:linear-gradient(135deg,#eef5ff,#f5faff); border-color:#c9dcf9;
+    box-shadow:0 2px 8px rgba(37,99,235,.10); }
+  .g-ana-card .ga-name { display:flex; align-items:center; gap:6px; font-size:12.5px;
+                         font-weight:700; color:var(--text); letter-spacing:.2px; }
+  .g-ana-card .ga-name::before { content:""; width:6px; height:6px; border-radius:50%;
+                                 background:var(--ac); opacity:.85; flex:none; }
+  .g-ana-card.c-total .ga-name { color:#1d4ed8; }
+  .g-ana-card .ga-gpa { display:block; margin-top:5px; font-size:27px; font-weight:800; line-height:1.1;
+                        font-variant-numeric:tabular-nums; letter-spacing:-.5px; }
+  .g-ana-card .ga-chips { display:flex; flex-wrap:wrap; gap:4px 6px; margin-top:8px; }
+  .g-ana-card .ga-chip { font-size:11px; color:var(--muted); background:var(--soft);
+                         border:1px solid #e8eef5; border-radius:999px; padding:2px 8px;
+                         white-space:nowrap; }
+  .g-ana-card.c-total .ga-chip { background:#e8f1fe; border-color:#d3e3fb; color:#3b6cb7; }
+  .g-sec { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700;
+           color:var(--muted); margin:18px 0 8px; }
+  .g-sec .g-bar { flex:1; height:1px; background:var(--line); }
+  .g-row { display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--line);
+           border-radius:12px; padding:10px 14px; margin-bottom:8px;
+           animation:riseIn .2s ease both;
+           transition:box-shadow .16s, transform .15s, border-color .15s; }
+  .g-row:hover { transform:translateY(-1px); box-shadow:0 5px 14px rgba(37,99,235,.08);
+                 border-color:var(--hoverbd); }
+  /* 不计入绩点的课程整行置灰 */
+  .g-row.off { opacity:.55; }
+  .g-row.off:hover { transform:none; box-shadow:none; border-color:var(--line); }
+  .g-dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .g-name { flex:1; min-width:0; font-weight:600; font-size:14px; word-break:break-word; }
+  .g-meta { flex:none; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .g-val { flex:none; font-size:17px; font-weight:800; min-width:42px; text-align:right;
+           font-variant-numeric:tabular-nums; }
+  /* 绩点/分数 → 颜色：沿用「分数越高越暖绿、越低越红」的直觉 */
+  .g-c-g { color:var(--green); } .g-c-b { color:var(--blue); }
+  .g-c-a { color:var(--amber); } .g-c-r { color:var(--red); }
+  .g-c-n { color:var(--muted); }
+  .dot-g { background:var(--green); } .dot-b { background:var(--blue); }
+  .dot-a { background:var(--amber); } .dot-r { background:var(--red); }
+  .dot-n { background:var(--line); }
+
+  /* 用户系统开启「减少动态效果」时，关掉所有过渡动画 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.01ms !important; animation-delay:0ms !important;
+                             transition-duration:.01ms !important; }
+    .bg-orbs i, .course::after, .hw2::after, .sk-card::after { display:none; }
+  }
+
+  /* ---------- 暗色模式（html[data-theme="dark"] 切换） ---------- */
+  html[data-theme="dark"] {
+    color-scheme:dark;
+    --bg:#0d1424; --card:#161f33; --line:#2b3a55; --text:#e2e8f0; --muted:#8fa0b8;
+    --blue:#5b9bff; --green:#4ade80; --red:#f87171; --amber:#fbbf24;
+    --soft:#1d2a44; --hover:#1c2c4f; --hoverbd:#33507e;
+  }
+  html[data-theme="dark"] body { background-image:
+      radial-gradient(1100px 480px at 15% -8%, rgba(59,130,246,.10), transparent 60%),
+      radial-gradient(900px 420px at 88% -6%, rgba(34,197,94,.07), transparent 55%); }
+  html[data-theme="dark"] .bg-orbs i.o1 { background:radial-gradient(circle, rgba(59,130,246,.13), rgba(59,130,246,0) 70%); }
+  html[data-theme="dark"] .bg-orbs i.o2 { background:radial-gradient(circle, rgba(34,197,94,.09), rgba(34,197,94,0) 70%); }
+  html[data-theme="dark"] .bg-orbs i.o3 { background:radial-gradient(circle, rgba(139,92,246,.12), rgba(139,92,246,0) 70%); }
+  html[data-theme="dark"] .topbar h1, html[data-theme="dark"] .login-card h2 {
+    background:linear-gradient(90deg, #93c5fd, #60a5fa 60%, #3b82f6);
+    -webkit-background-clip:text; background-clip:text; }
+  html[data-theme="dark"] .sk-card::after {
+    background:linear-gradient(105deg, transparent 42%, rgba(255,255,255,.07) 50%, transparent 58%); }
+  html[data-theme="dark"] input, html[data-theme="dark"] textarea { background:var(--card); }
+  /* 绿色系组件 */
+  html[data-theme="dark"] .safe-note, html[data-theme="dark"] .subinfo { background:#12291b; border-color:#275c3a; }
+  html[data-theme="dark"] .subinfo .subcomment { color:#a7f3d0; background:var(--card); }
+  html[data-theme="dark"] .grade-tag { border-color:#275c3a; }
+  html[data-theme="dark"] .subver { border-color:#275c3a; }
+  html[data-theme="dark"] .subver.latest { border-color:#3f8f5f; }
+  html[data-theme="dark"] .subver-body ul { background:#122418; }
+  html[data-theme="dark"] .subver.latest .subver-head { background:#1b3a28; }
+  html[data-theme="dark"] .subcomment { background:var(--card); }
+  html[data-theme="dark"] .cstat.ok { background:#12291b; border-color:#275c3a; }
+  html[data-theme="dark"] .sem-tag.active { background:#12291b; }
+  html[data-theme="dark"] .badge.ok { background:#12291b; }
+  /* 黄 / 红 / 灰组件 */
+  html[data-theme="dark"] .cstat.hot { color:#fbbf24; background:#332a12; border-color:#4d3f1a; }
+  html[data-theme="dark"] .badge.no { background:#331c1c; }
+  html[data-theme="dark"] .badge.past { background:#2b3a55; }
+  html[data-theme="dark"] .badge.soon { background:#331c1c; }
+  html[data-theme="dark"] .hw.remind, html[data-theme="dark"] .hw2.remind {
+    border-color:#5f2f2f; background:linear-gradient(180deg,#241316,var(--card) 72%); }
+  html[data-theme="dark"] .chips-clear:hover { background:#332020; }
+  html[data-theme="dark"] .hw-grp-title { color:#4ade80; }
+  /* 成绩统计卡四档 + 汇总 */
+  html[data-theme="dark"] .g-ana-card.c-g { --ac:#4ade80; background:linear-gradient(180deg,#12291b,var(--card) 75%); border-color:#275c3a; }
+  html[data-theme="dark"] .g-ana-card.c-b { --ac:#5b9bff; background:linear-gradient(180deg,#14243f,var(--card) 75%); border-color:#2f4d7a; }
+  html[data-theme="dark"] .g-ana-card.c-a { --ac:#fbbf24; background:linear-gradient(180deg,#32270f,var(--card) 75%); border-color:#5c4a1c; }
+  html[data-theme="dark"] .g-ana-card.c-r { --ac:#f87171; background:linear-gradient(180deg,#331b1b,var(--card) 75%); border-color:#5f2f2f; }
+  html[data-theme="dark"] .g-ana-card.c-total { --ac:#5b9bff; background:linear-gradient(135deg,#16294d,#152f52); border-color:#2f4d7a; }
+  html[data-theme="dark"] .g-ana-card.c-total .ga-name { color:#93c5fd; }
+  html[data-theme="dark"] .g-ana-card.c-total .ga-chip { background:#1c3054; border-color:#2f4d7a; color:#9db8e8; }
+</style>
+
+</head>
+<body>
+<!-- 背景漂浮光晕（纯装饰，不挡点击） -->
+<div class="bg-orbs" aria-hidden="true"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
+
+<!-- ===== 登录页 ===== -->
+<div id="login">
+  <div class="login-card">
+    <button class="btn theme-mini" id="settingsBtnLogin" title="设置">设置</button>
+    <h2>ZJU-Course</h2>
+    <label>学号</label>
+    <input id="stuid" autocomplete="username" />
+    <label>密码</label>
+    <input id="pwd" type="password" autocomplete="current-password" />
+    <div class="err" id="loginErr"></div>
+    <button class="btn primary" id="loginBtn">登录</button>
+    <div class="safe-note">使用浙大统一身份认证登录</div>
+  </div>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div id="app" class="wrap" style="display:none">
+  <div class="topbar">
+    <h1>ZJU-Course</h1>
+    <div class="tools">
+      <button class="btn" id="gradeBtn">成绩查询</button>
+      <button class="btn" id="refreshBtn"><span class="ic" aria-hidden="true">↻</span> 刷新</button>
+      <button class="btn" id="settingsBtn" title="设置">设置</button>
+      <button class="btn" id="logoutBtn">退出登录</button>
+    </div>
+  </div>
+  <div class="hint" id="meta">加载中…</div>
+  <div class="grid" style="margin-top:14px">
+    <div class="col">
+      <input id="courseSearch" type="search" placeholder="🔍 搜索课程名…" autocomplete="off" />
+      <div class="panel">
+        <h3><span>我的课程</span>
+          <span class="hd-tools">
+            <span class="count" id="courseCount"></span>
+            <select id="semesterSel"><option value="">全部学期</option></select>
+          </span>
+        </h3>
+        <div id="courses"><div class="empty">加载中…</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3><span>作业（按截止时间）</span>
+        <span class="hd-tools">
+          <span class="count" id="hwCount"></span>
+          <select id="hwFilter">
+            <option value="all">全部作业</option>
+            <option value="todo">只看未提交</option>
+            <option value="thisterm">只看本学期</option>
+          </select>
+        </span>
+      </h3>
+      <div id="homeworks"><div class="empty">加载中…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 课程详情浮窗：大窗口盖在主页上，✕ / Esc / 点空白即可返回主页 ===== -->
+<div id="detail" class="course-mask" style="display:none">
+  <div class="course-win" role="dialog" aria-modal="true" aria-label="课程详情">
+    <div class="course-top">
+      <div class="course-t">
+        <h1 id="detailTitle">课程详情</h1>
+        <div class="hint" id="detailMeta">加载中…</div>
+      </div>
+      <button class="course-close" id="detailClose" title="关闭，返回主页 (Esc)">✕</button>
+    </div>
+    <div class="course-body" id="detailBody"><div class="empty">加载中…</div></div>
+  </div>
+</div>
+
+<!-- ===== 成绩查询浮窗（ETA 教务总成绩 + 分学期绩点分析） ===== -->
+<div id="gradeModal" class="course-mask" style="display:none">
+  <div class="course-win" role="dialog" aria-modal="true" aria-label="成绩查询">
+    <div class="course-top">
+      <div class="course-t">
+        <h1 id="gradeTitle">成绩查询</h1>
+        <div class="hint" id="gradeMeta">加载中…</div>
+      </div>
+      <button class="course-close" id="gradeClose" title="关闭 (Esc)">✕</button>
+    </div>
+    <div class="course-body" id="gradeBody"><div class="empty">加载中…</div></div>
+  </div>
+</div>
+
+<!-- ===== 设置浮窗（外观等偏好，不依赖登录状态） ===== -->
+<div id="settingsMask" class="course-mask" style="display:none">
+  <div class="settings-win" role="dialog" aria-modal="true" aria-label="设置">
+    <div class="course-top">
+      <div class="course-t">
+        <h1>设置</h1>
+      </div>
+      <button class="course-close" id="settingsClose" title="关闭 (Esc)">✕</button>
+    </div>
+    <div class="settings-body">
+      <div class="set-sec">外观</div>
+      <div class="set-row">
+        <div>
+          <div class="set-name">主题模式</div>
+          <div class="set-desc">跟随系统时自动随操作系统的深浅色变化</div>
+        </div>
+        <div class="seg" id="themeSeg">
+          <button type="button" data-v="light">浅色</button>
+          <button type="button" data-v="dark">深色</button>
+          <button type="button" data-v="system">跟随系统</button>
+        </div>
+      </div>
+      <div class="set-sec">下载</div>
+      <div class="set-row">
+        <div style="min-width:0">
+          <div class="set-name">下载文件夹</div>
+          <div class="set-desc" id="dlDirText" style="word-break:break-all">加载中…</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn" id="dlDirOpen" title="在资源管理器中打开该文件夹">打开</button>
+          <button class="btn" id="dlDirBtn">更改</button>
+        </div>
+      </div>
+      <div class="set-sec">提醒</div>
+      <div class="set-row">
+        <div>
+          <div class="set-name">截止前提醒</div>
+          <div class="set-desc">未提交且临近截止的作业卡片红色高亮</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="remindOn" /><span></span></label>
+      </div>
+      <div class="set-row" id="remindHoursRow">
+        <div>
+          <div class="set-name">提前提醒时间</div>
+          <div class="set-desc">截止前多久开始提醒</div>
+        </div>
+        <div class="seg" id="remindSeg">
+          <button type="button" data-v="6">6 小时</button>
+          <button type="button" data-v="24">1 天</button>
+          <button type="button" data-v="72">3 天</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 右下角轻提示容器 -->
+<div id="toastWrap"></div>
+
+<!-- 文件在线预览——居中方形窗口（置于脚本前，脚本顶层即绑定事件） -->
+<div id="pvMask" class="pv-mask" style="display:none">
+  <button class="pv-close" id="pvClose" title="关闭 (Esc)">✕</button>
+  <div class="pv-win">
+    <div class="pv-body" id="pvBody"><div class="pv-loading"><span class="spinner"></span>正在加载预览…</div></div>
+    <div class="pv-cap" id="pvCap" style="display:none">
+      <span class="pv-cap-name" id="pvName"></span>
+      <button class="pv-cap-dl" id="pvDl">下载</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 服务端渲染首页时会把随机 token 注入到这里（见 server.py 的 do_GET）
+// 有了它，本机其它程序就没法偷偷调用你的会话。
+window.TOKEN = "__ZJUCOURSE_TOKEN__";
+
+const $ = (s) => document.querySelector(s);
+const api = (p, opt = {}) => {
+  opt.headers = Object.assign({ "X-Zjucourse-Token": window.TOKEN }, opt.headers || {});
+  if (opt.body && !(opt.headers["Content-Type"])) opt.headers["Content-Type"] = "application/json";
+  return fetch(p, opt).then(r => r.json()).catch(e => ({ ok: false, error: String(e) }));
+};
+
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, m =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+
+// 安全渲染 HTML 描述：只允许教师常用的排版标签，过滤 script/事件等危险内容
+function safeHtml(raw) {
+  if (raw == null) return "";
+  const tagAllow = new Set(["a","b","br","code","del","div","em","h1","h2","h3","h4","h5","h6","i","img","li","ol","p","pre","s","span","strong","sub","sup","table","tbody","td","tfoot","th","thead","tr","u","ul"]);
+  const attrAllow = {
+    "*": ["style","title"],
+    "a": ["href","target","title"],
+    "img": ["src","alt","title","width","height"],
+    "td": ["colspan","rowspan"],
+    "th": ["colspan","rowspan"],
+  };
+  const safeUrl = (v) => {
+    if (v == null) return null;
+    v = String(v).trim();
+    if (!v) return null;
+    const lc = v.toLowerCase();
+    if (lc.startsWith("javascript:") || lc.startsWith("data:") || lc.startsWith("vbscript:")) return null;
+    return v;
+  };
+  const out = document.createElement("div");
+  const tmp = document.createElement("div");
+  tmp.innerHTML = String(raw);
+  const walk = (srcNode, dstParent) => {
+    for (const child of Array.from(srcNode.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        dstParent.appendChild(document.createTextNode(child.nodeValue));
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        const tag = child.tagName.toLowerCase();
+        if (tagAllow.has(tag)) {
+          const el = document.createElement(tag);
+          const allowed = (attrAllow[tag] || []).concat(attrAllow["*"]);
+          for (const attr of Array.from(child.attributes)) {
+            const name = attr.name.toLowerCase();
+            if (!allowed.includes(name)) continue;
+            if ((tag === "a" && name === "href") || (tag === "img" && name === "src")) {
+              const v = safeUrl(attr.value);
+              if (v != null) el.setAttribute(name, v);
+            } else {
+              el.setAttribute(name, attr.value);
+            }
+          }
+          walk(child, el);
+          dstParent.appendChild(el);
+        } else {
+          // 不在白名单的标签，只保留其子文本/节点
+          walk(child, dstParent);
+        }
+      }
+    }
+  };
+  walk(tmp, out);
+  return out.innerHTML;
+}
+
+function countdown(iso) {
+  if (!iso) return { text: "无截止时间", over: false };
+  const diff = new Date(iso.replace("Z", "+00:00")) - new Date();
+  if (diff <= 0) return { text: "已截止", over: true };
+  const day = Math.floor(diff / 86400000);
+  const hr = Math.floor((diff % 86400000) / 3600000);
+  const min = Math.floor((diff % 3600000) / 60000);
+  return { text: `剩 ${day} 天 ${hr} 小时 ${min} 分`, over: false };
+}
+
+// ---- 截止前提醒（设置里可开关 / 调整提前量，存 localStorage） ----
+let remindCfg = { on: true, hours: 24 };
+try { Object.assign(remindCfg, JSON.parse(localStorage.getItem("zc-remind") || "{}")); }
+catch (e) {}
+if (![6, 24, 72].includes(remindCfg.hours)) remindCfg.hours = 24;
+function saveRemindCfg() {
+  try { localStorage.setItem("zc-remind", JSON.stringify(remindCfg)); } catch (e) {}
+}
+/* 是否应提醒：未提交 + 进行中 + 距截止不足设定小时数 */
+function dueSoon(x) {
+  if (!remindCfg.on || x.submitted) return false;
+  const iso = x.deadline || x.end_time;
+  if (!iso || (x.status || "ongoing") !== "ongoing") return false;
+  const diff = new Date(iso.replace("Z", "+00:00")) - new Date();
+  return diff > 0 && diff <= remindCfg.hours * 3600000;
+}
+
+// ---- 灵动增强辅助 ----
+
+// 骨架屏（kind: course / hw）
+function skeletonHtml(kind, n) {
+  const w = (a, b) => Math.round(a + Math.random() * (b - a));
+  let html = '<div class="skel" aria-hidden="true">';
+  for (let i = 0; i < n; i++) {
+    html += kind === "hw"
+      ? `<div class="sk-card" style="padding:16px;animation-delay:${i * 30}ms">
+           <div class="sk-b" style="width:82%;height:14px;margin-bottom:11px"></div>
+           <div class="sk-b" style="width:34%"></div>
+           <div class="sk-b" style="width:64%"></div>
+           <div class="sk-b" style="width:${w(40, 70)}%;height:9px"></div>
+         </div>`
+      : `<div class="sk-card" style="animation-delay:${i * 30}ms">
+           <div class="sk-b" style="width:${w(55, 85)}%;height:14px;margin-bottom:10px"></div>
+           <div class="sk-b" style="width:38%"></div>
+         </div>`;
+  }
+  return html + "</div>";
+}
+
+// 空状态大图标
+function emptyBox(icon, msg) {
+  return `<div class="empty-big"><div class="eb-ic">${icon}</div><div>${msg}</div></div>`;
+}
+
+// 已选文件 → 小标签列表；空则隐藏
+function chipIcon(name) {
+  const e = fileExt(name);
+  if (["png", "jpg", "jpeg", "gif", "webp", "bmp"].includes(e)) return "🖼️";
+  if (["mp4", "mov", "avi", "mkv", "wmv"].includes(e)) return "🎬";
+  if (["zip", "rar", "7z"].includes(e)) return "🗜️";
+  if (e === "pdf") return "📕";
+  if (["doc", "docx"].includes(e)) return "📘";
+  if (["ppt", "pptx"].includes(e)) return "📙";
+  if (["xls", "xlsx", "csv"].includes(e)) return "📗";
+  return "📄";
+}
+function updateChips(input) {
+  const box = input.closest(".submit");
+  if (!box) return;
+  const chips = box.querySelector(".chips");
+  if (!chips) return;
+  const files = [...(input.files || [])];
+  if (!files.length) { chips.hidden = true; chips.innerHTML = ""; return; }
+  chips.hidden = false;
+  chips.innerHTML = files.map(f =>
+    `<span class="chip"><span aria-hidden="true">${chipIcon(f.name)}</span>` +
+    `<span class="nm" title="${esc(f.name)}">${esc(f.name)}</span>` +
+    (f.size ? `<span style="color:var(--muted)">${fmtSize(f.size)}</span>` : "") +
+    `</span>`).join("") +
+    `<button type="button" class="chips-clear" title="清空已选">✕ 清空</button>`;
+}
+// 委托监听：任何提交区的文件选择/清空都即时刷新标签
+document.addEventListener("change", (ev) => {
+  const inp = ev.target;
+  if (inp && inp.matches && inp.matches(".submit input[type=file]")) updateChips(inp);
+});
+document.addEventListener("click", (ev) => {
+  const clr = ev.target.closest ? ev.target.closest(".chips-clear") : null;
+  if (!clr) return;
+  const chips = clr.closest(".chips");
+  const box = chips && chips.closest(".submit");
+  const inp = box && box.querySelector("input[type=file]");
+  if (!inp) return;
+  inp.value = "";
+  updateChips(inp);
+  const msg = box.querySelector(".submit-msg");
+  if (msg) { msg.className = "submit-msg"; msg.textContent = ""; }
+});
+
+// 每分钟刷新一次倒计时文案；24 小时内自动点亮红色提醒
+function refreshCountdowns() {
+  document.querySelectorAll(".cd").forEach(el => {
+    const iso = el.dataset.iso;
+    if (!iso) return;
+    const cd = countdown(iso);
+    el.textContent = cd.text;
+    const wrap = el.closest(".ddl");
+    if (!wrap) return;
+    const left = cd.over ? 0 : (new Date(iso.replace("Z", "+00:00")) - Date.now());
+    wrap.classList.toggle("soon", !cd.over && left < 86400000);
+  });
+}
+setInterval(refreshCountdowns, 30000);
+
+// 缓存上一次的数据，切换筛选器时不用重新请求服务端
+let DATA = { courses: [], homeworks: [], activeIds: new Set() };
+// 成绩数据缓存：随课程数据一起刷新，打开成绩弹窗可秒显
+let GRADES = null;
+
+async function loadData(force) {
+  const t0 = performance.now();
+  $("#meta").textContent = "正在加载…";
+  if (force || !DATA.courses.length) {
+    // 数据还没就绪时先给骨架屏，别让页面空着干等
+    $("#courses").innerHTML = skeletonHtml("course", 4);
+    $("#homeworks").innerHTML = skeletonHtml("hw", 4);
+  }
+  const suffix = force ? "?force=1" : "";
+  const [c, h] = await Promise.all([
+    api("/api/courses" + suffix),
+    api("/api/homework" + suffix),
+  ]);
+  // 成绩随课程数据同步刷新（后台进行，不阻塞主页渲染）
+  refreshGrades(force);
+  const ms = Math.round(performance.now() - t0);
+
+  if (c.ok) DATA.courses = c.courses;
+  if (h.ok) DATA.homeworks = h.homeworks;
+
+  if (!c.ok || !h.ok) {
+    const err = esc((c.error || h.error || "加载失败"));
+    $("#meta").textContent = "加载失败：" + err + "（若会话过期请退出重登）";
+    return;
+  }
+  DATA.activeIds = new Set(DATA.courses.filter(x => x.is_active).map(x => x.semester_id));
+
+  // 学期下拉（保留当前选择）
+  const sel = $("#semesterSel");
+  const prev = sel.value;
+  const terms = [...new Set(DATA.courses.map(x => x.semester_name || "未标注学期"))];
+  sel.innerHTML = '<option value="">全部学期</option>' +
+    terms.map(t => `<option value="${esc(t)}">${esc(t)}${isActiveTerm(t) ? "（本学期）" : ""}</option>`).join("");
+  sel.value = terms.includes(prev) ? prev : "";
+
+  renderCourses();
+  renderHomeworks();
+  refreshCountdowns();
+
+  $("#meta").textContent =
+    `共 ${DATA.courses.length} 门课程 · ${DATA.homeworks.length} 项作业 · 加载耗时 ${ms} ms`;
+}
+
+function isActiveTerm(name) {
+  return DATA.courses.some(c => (c.semester_name || "未标注学期") === name && c.is_active);
+}
+
+function renderCourses() {
+  const term = $("#semesterSel").value;
+  const q = ($("#courseSearch").value || "").trim().toLowerCase();
+  const list = DATA.courses.filter(x => {
+    if (term && (x.semester_name || "未标注学期") !== term) return false;
+    if (q && !((x.name || "").toLowerCase().includes(q) ||
+               (x.teacher || "").toLowerCase().includes(q))) return false;
+    return true;
+  });
+  $("#courseCount").textContent = `共 ${list.length} 门`;
+
+  if (!list.length) {
+    $("#courses").innerHTML = emptyBox(q ? "🔍" : "🗂️", q ? "没有符合条件的课程" : "暂时还没有课程");
+    return;
+  }
+
+  // 某门课的作业小统计（全学期口径，卡片显示与筛选互不干扰）
+  function courseStat(cid) {
+    let n = 0, sub = 0, pend = 0;
+    for (const h of DATA.homeworks) {
+      if (h.course_id === null || h.course_id === undefined) continue;
+      if (String(h.course_id) !== String(cid)) continue;
+      n++;
+      if (h.submitted) sub++;
+      else if ((h.status || "ongoing") === "ongoing") pend++;
+    }
+    return { n, sub, pend };
+  }
+
+  // 不按学期拆分，所有课程铺在一个列表里；学期只作为卡片上的小标签。
+  $("#courses").innerHTML = list.map((x, i) => {
+    const sem = x.semester_name || "未标注学期";
+    const tagCls = x.is_active ? "sem-tag active" : "sem-tag";
+    const tagTxt = x.is_active ? sem + " · 本学期" : sem;
+    const s = courseStat(x.id);
+    const stats = s.n
+      ? `<div class="cstats">` +
+        (s.pend ? `<span class="cstat hot">⏰ ${s.pend} 项待提交</span>` : `<span class="cstat ok">✅ ${s.sub}/${s.n} 已提交</span>`) +
+        `<span class="cstat">共 ${s.n} 项作业</span></div>`
+      : `<div class="cstats"><span class="cstat">暂无作业</span></div>`;
+    return `
+      <div class="course" data-id="${x.id}" data-name="${esc(x.name)}"
+           onclick="openDetail(${x.id}, this.dataset.name)"
+           style="animation-delay:${Math.min(i * 20, 240)}ms">
+        <div class="name">${esc(x.name)}</div>
+        <div class="meta">
+          <span class="${tagCls}">${esc(tagTxt)}</span>
+          ${x.teacher ? `<span>授课教师：${esc(x.teacher)}</span>` : ""}
+          ${x.teaching_class ? `<span>${esc(x.teaching_class)}</span>` : ""}
+          <span class="go" style="margin-left:auto;color:var(--blue);font-size:12px">查看章节与资源 →</span>
+        </div>
+        ${stats}
+      </div>`;
+  }).join("");
+}
+
+function renderHomeworks() {
+  const term = $("#semesterSel").value;
+  const filter = $("#hwFilter").value;
+  const termCourse = new Set(DATA.courses.filter(x => !term || (x.semester_name || "未标注学期") === term).map(x => x.name));
+  const activeCourses = new Set(DATA.courses.filter(x => x.is_active).map(x => x.name));
+
+  const list = DATA.homeworks.filter(x => {
+    if (!termCourse.has(x.course)) return false;
+    if (filter === "todo" && x.submitted) return false;
+    if (filter === "thisterm" && !activeCourses.has(x.course)) return false;
+    return true;
+  });
+
+  $("#hwCount").textContent = `共 ${list.length} 项`;
+  if (!list.length) { $("#homeworks").innerHTML = emptyBox("📭", "没有符合条件的作业"); return; }
+
+  // 分三类：进行中 / 未开始 / 已结束（只有进行中的可以提交）
+  const st = x => x.status || "ongoing";
+  const groups = [
+    ["ongoing",    "🔄 进行中", list.filter(x => st(x) === "ongoing")],
+    ["not_started","⏳ 未开始", list.filter(x => st(x) === "not_started")],
+    ["ended",      "✅ 已结束", list.filter(x => st(x) === "ended")],
+  ].filter(g => g[2].length);
+
+  const fmtT = s => (s || "").replace("T", " ").replace("Z", "");
+  const hwCard = (x, cd, delay = 0) => {
+    const ongoing = st(x) === "ongoing";
+    const notStarted = st(x) === "not_started";
+    const soon = dueSoon(x);
+    return `
+    <div class="hw ${soon ? "remind" : ""}" style="animation-delay:${delay}ms">
+      <div class="title">${esc(x.title)}
+        <span class="badge ${x.submitted ? "ok" : "no"}">${x.submitted ? "已提交" : "未提交"}</span>
+        ${soon ? `<span class="badge soon">⏰ 即将截止</span>` : ""}
+      </div>
+      <div class="course">${esc(x.course)}</div>
+      <div class="ddl ${cd.over ? "over" : ""}">截止：<b>${fmtT(x.deadline || x.end_time)}</b> · <span class="cd" data-iso="${esc(x.deadline || x.end_time || "")}">${cd.text}</span></div>
+      ${notStarted && x.start_time ? `<div class="ddl">开始：<b>${fmtT(x.start_time)}</b></div>` : ""}
+      ${x.description ? `<div class="desc">${safeHtml(x.description)}</div>` : ""}
+      ${x.submitted ? `<div class="view-sub"><button class="btn" onclick="viewHwFiles(${x.course_id})">📂 查看已提交文件</button></div>` : ""}
+      ${ongoing ? `
+      <div class="submit" id="submit-${x.id}">
+        <label class="btn pick"><input type="file" multiple data-hw="${x.id}" /><span>📎 选择文件</span></label>
+        <button class="btn primary" onclick="submitHW(${x.id}, this)">提交作业</button>
+        <div class="chips" hidden></div>
+        <textarea class="hw-note" placeholder="文本输入"></textarea>
+        <div class="submit-hint">ℹ️ 仅显示最后一次提交，提交后请到「学在浙大」确认</div>
+        <div class="submit-msg" id="submit-msg-${x.id}"></div>
+      </div>` : ""}
+    </div>`;
+  };
+
+  let seq = 0;
+  $("#homeworks").innerHTML = groups.map(([key, label, arr]) => `
+    <div class="hw-grp">
+      <div class="hw-grp-title">${label} <span class="count">${arr.length}</span></div>
+      ${arr.map(x => hwCard(x, countdown(x.deadline), Math.min(seq++ * 22, 264))).join("")}
+    </div>`).join("");
+}
+
+// ---- 课程详情：章节 + 资源 ----
+const DETAIL_FILES = {};   // uploadId -> 文件名（避免把文件名塞进 HTML 属性）
+const DETAIL_COURSE = {};  // uploadId -> 所属课程名（下载时按课程建子文件夹）
+function fileExt(name) {
+  const i = (name || "").lastIndexOf(".");
+  return i < 0 ? "" : (name.slice(i + 1).toLowerCase());
+}
+function fileType(name) {
+  const e = fileExt(name);
+  if (["ppt", "pptx"].includes(e)) return "PPT";
+  if (["doc", "docx"].includes(e)) return "Word";
+  if (["xls", "xlsx"].includes(e)) return "Excel";
+  if (["pdf"].includes(e)) return "PDF";
+  if (["zip", "rar", "7z"].includes(e)) return "压缩包";
+  if (["png", "jpg", "jpeg", "gif"].includes(e)) return "图片";
+  if (["mp4", "mov", "avi"].includes(e)) return "视频";
+  return e ? e.toUpperCase() : "文件";
+}
+
+// 统一的文件项 HTML：含「预览」与「下载」按钮。
+// 预览走方案 B：拿浙大签名预览 URL 后直接新标签页打开（最稳，不经本机中转）。
+function fmtSize(n) {
+  if (n === null || n === undefined || n === "") return "";
+  n = Number(n);
+  if (!isFinite(n) || n < 0) return "";
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+function fileItemHtml(u) {
+  DETAIL_FILES[u.id] = u.name;
+  DETAIL_COURSE[u.id] = DETAIL_COURSE_NAME;
+  const size = fmtSize(u.size) ? ` · ${fmtSize(u.size)}` : "";
+  return `<div class="file"><span class="fname">${esc(u.name)}<span class="ftype">${fileType(u.name)}${size}</span></span>`
+       + `<button class="dl pv" data-name="${esc(u.name)}" onclick="previewFile(${u.id}, this)" title="在线预览（图片/PDF/Word/PPT/Excel/TXT 等）">预览</button>`
+       + `<button class="dl" onclick="downloadUpload(${u.id})">下载</button></div>`;
+}
+
+// 内嵌预览：让后端带登录会话把浙大预览服务转好的内容拉下来 → blob URL →
+// 图片用 <img>、PDF/HTML 用 <iframe> 在遮罩层里渲染（不触发下载）。
+// 拿不到/不支持则回退到下载。
+const PREVIEW_IMG_EXTS = ["jpg","jpeg","png","gif","webp","bmp"];
+const PREVIEWABLE_EXTS = PREVIEW_IMG_EXTS.concat(["pdf","doc","docx","ppt","pptx","xls","xlsx"]);
+// 纯文本类：浙大预览服务不支持转换，直接拉原文件本地渲染
+const TEXT_EXTS = ["txt","md","log","csv"];
+const PREVIEW_BLOB_URLS = [];
+function pvLoadingHtml() {
+  return `<div class="pv-loading"><span class="spinner"></span>正在加载预览…</div>`;
+}
+function pvCleanup() {
+  while (PREVIEW_BLOB_URLS.length) URL.revokeObjectURL(PREVIEW_BLOB_URLS.pop());
+  const b = $("#pvBody"); if (b) b.innerHTML = pvLoadingHtml();
+  $("#pvCap").style.display = "none";
+}
+function pvCloseNow() { $("#pvMask").style.display = "none"; pvCleanup(); }
+
+async function previewFile(uploadId, btn) {
+  const name = (btn && btn.dataset && btn.dataset.name) || DETAIL_FILES[uploadId] || "";
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  if (!PREVIEWABLE_EXTS.includes(ext) && !TEXT_EXTS.includes(ext)) {
+    alert(`「${name}」暂不支持在线预览，请用下载查看`);
+    return;
+  }
+  // 打开居中窗口并显示加载
+  $("#pvBody").innerHTML = pvLoadingHtml();
+  $("#pvCap").style.display = "none";
+  $("#pvMask").style.display = "flex";
+  // ---- 纯文本类（txt/md/log/csv）：不走浙大预览服务，直接拉原文件渲染 ----
+  if (TEXT_EXTS.includes(ext)) {
+    try {
+      const r = await fetch("/api/download/" + uploadId, {
+        headers: { "X-Zjucourse-Token": window.TOKEN }
+      });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const buf = await r.arrayBuffer();
+      if (buf.byteLength > 20 * 1048576) {
+        pvCloseNow();
+        alert("文本文件超过 20MB，请下载查看");
+        downloadUpload(uploadId);
+        return;
+      }
+      // 先按 UTF-8 严格解码；失败（国内软件导出的 GBK 常见）退回 GB18030
+      let text;
+      try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+      catch (e) { text = new TextDecoder("gb18030").decode(buf); }
+      const body = $("#pvBody");
+      const pre = document.createElement("pre");
+      pre.className = "pv-text";
+      pre.textContent = text;
+      body.innerHTML = ""; body.appendChild(pre);
+      $("#pvName").textContent = name;
+      $("#pvDl").onclick = () => downloadUpload(uploadId);
+      $("#pvCap").style.display = "flex";
+    } catch (e) {
+      pvCloseNow();
+      alert("预览失败：" + e + "，已为你切换到下载");
+      downloadUpload(uploadId);
+    }
+    return;
+  }
+  try {
+    const r = await fetch("/api/preview/" + uploadId, {
+      headers: { "X-Zjucourse-Token": window.TOKEN }
+    });
+    if (!r.ok) {
+      let msg = "预览不可用";
+      try { msg = (await r.json()).error || msg; } catch (e) {}
+      pvCloseNow();
+      alert(msg + "，已为你切换到下载");
+      downloadUpload(uploadId);
+      return;
+    }
+    const ctype = (r.headers.get("Content-Type") || "").toLowerCase();
+    const blob = await r.blob();
+    // 图片 → <img>；浙大转好的 PDF / Office HTML → <iframe>
+    if (ctype.startsWith("image/")) {
+      const url = URL.createObjectURL(blob); PREVIEW_BLOB_URLS.push(url);
+      const body = $("#pvBody");
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = name;
+      img.onerror = () => { pvCloseNow(); alert("图片预览失败，已为你切换到下载"); downloadUpload(uploadId); };
+      body.innerHTML = ""; body.appendChild(img);
+    } else if (ctype.includes("pdf") || ctype.includes("html") || ctype.startsWith("text/")) {
+      const url = URL.createObjectURL(blob); PREVIEW_BLOB_URLS.push(url);
+      const body = $("#pvBody");
+      const f = document.createElement("iframe");
+      f.src = url;
+      f.title = name;
+      body.innerHTML = ""; body.appendChild(f);
+    } else {
+      // 浙大没转成功（octet-stream 等）→ 下载
+      pvCloseNow();
+      alert("该文件未生成在线预览，已为你切换到下载");
+      downloadUpload(uploadId);
+      return;
+    }
+    // 窗口底部悬浮药丸：文件名 + 下载
+    $("#pvName").textContent = name;
+    $("#pvDl").onclick = () => downloadUpload(uploadId);
+    $("#pvCap").style.display = "flex";
+  } catch (e) {
+    pvCloseNow();
+    alert("预览失败：" + e + "，已为你切换到下载");
+    downloadUpload(uploadId);
+  }
+}
+$("#pvClose").onclick = pvCloseNow;
+// 不再点遮罩关闭：弹窗只通过右上角 × 关闭，避免误点黑色区域丢失浏览进度
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  if ($("#settingsMask").style.display !== "none") closeSettings();
+  else if ($("#pvMask").style.display !== "none") pvCloseNow();
+  else if ($("#gradeModal").style.display !== "none") closeMask($("#gradeModal"));
+  else if ($("#detail").style.display !== "none") closeDetailModal();
+});
+
+
+async function openDetail(courseId, courseName) {
+  DETAIL_COURSE_ID = courseId;
+  DETAIL_COURSE_NAME = (courseName || "").trim();
+  $("#detailTitle").textContent = courseName || "课程详情";
+  $("#detailMeta").textContent = "正在加载作业与章节…";
+  $("#detailBody").innerHTML = `<div class="empty">加载中…</div>`;
+  showDetailModal();
+
+  const [cwRes, hwRes, lvRes] = await Promise.all([
+    api("/api/courseware?course_id=" + encodeURIComponent(courseId)),
+    api("/api/course-homework?course_id=" + encodeURIComponent(courseId)),
+    api("/api/course-lives?course_id=" + encodeURIComponent(courseId)),
+  ]);
+
+  for (const k in DETAIL_FILES) delete DETAIL_FILES[k];
+  for (const k in DETAIL_COURSE) delete DETAIL_COURSE[k];
+
+  // ---- 章节与资源：优先用后端已按浙大网页版规则分好的 chapters ----
+  // 后端从课件标题/文件名推断章号并把活动顺序归到对应章（复刻网页版结构）。
+  // 若后端没返回 chapters，再退回前端 groupByChapter 兜底。
+  function groupByChapter(activities) {
+    // 课件类活动（标题含"课件"/"第N章"/"Chapter N"）开启新章，其余挂最近章
+    const cnMap = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9,"十":10};
+    function chapterOf(a) {
+      const t = a.title || "";
+      const names = (a.uploads || []).map(u => u.name).join(" ");
+      const text = t + " " + names;
+      let m = text.match(/第\s*(\d+)\s*章/);
+      if (m) {
+        const no = +m[1];
+        const sub = text.split(/第\s*\d+\s*章/)[1].trim().replace(/^[.\-—\s]+/, "");
+        return { no, title: "第" + (cnMap[no] || no) + "章" + (sub ? " " + sub : "") };
+      }
+      m = text.match(/第\s*([一二三四五六七八九十]+)\s*章/);
+      if (m) {
+        const no = cnMap[m[1]];
+        const sub = text.split(/第\s*[一二三四五六七八九十]+\s*章/)[1].trim().replace(/^[.\-—\s]+/, "");
+        return { no, title: "第" + (cnMap[no] || no) + "章" + (sub ? " " + sub : "") };
+      }
+      m = text.match(/\bChapter\s*(\d+)(?:\s*[.:]?\s*)([^\n]*)/i);
+      if (m) {
+        const no = +m[1];
+        if (/^Chapter\s*\d+/i.test(t)) return { no, title: t.trim() };
+        const sub = m[2].trim();
+        return { no, title: "Chapter " + no + (sub ? ". " + sub : "") };
+      }
+      m = t.match(/课件\s*(\d+)/);
+      if (m) return { no: +m[1], title: "第" + (cnMap[+m[1]] || m[1]) + "章" };
+      return null;
+    }
+    const chapters = []; let cur = null;
+    for (const a of activities) {
+      const ch = chapterOf(a);
+      if (ch) { cur = { no: ch.no, title: ch.title, activities: [] }; chapters.push(cur); }
+      else if (!cur) { cur = { no: 0, title: "课前资料", activities: [] }; chapters.push(cur); }
+      cur.activities.push(a);
+    }
+    chapters.sort((x, y) => x.no - y.no);
+    return chapters;
+  }
+
+  let chHtml = `<div class="empty">这门课暂未发布章节 / 课件资源。</div>`;
+  let chapters = [];
+  if (cwRes.ok) {
+    // 后端已按浙大网页版规则分组（chapters）；无 chapters 时退回前端兜底
+    chapters = (cwRes.chapters && cwRes.chapters.length)
+               ? cwRes.chapters
+               : ((cwRes.courseware && cwRes.courseware.length) ? groupByChapter(cwRes.courseware) : []);
+    if (chapters.length) {
+      chHtml = chapters.map((ch, i) => {
+        const actHtml = (ch.activities || []).map((a, j) => {
+          const filesHtml = (a.uploads && a.uploads.length) ? a.uploads.map(u => fileItemHtml(u)).join("") : `<div class="empty act-empty">暂无文件</div>`;
+          return `
+            <div class="act">
+              <div class="act-head" id="act-head-${i}-${j}" onclick="toggleActivity('act-${i}-${j}')">
+                <span class="chev">▶</span>
+                <div class="act-title">${esc(a.title || "资源")}</div>
+              </div>
+              <div class="act-files" id="act-${i}-${j}" hidden>${filesHtml}</div>
+            </div>`;
+        }).join("");
+        const cnt = (ch.activities || []).reduce((n, a) => n + (a.uploads ? a.uploads.length : 0), 0);
+        // 默认全部折叠：下方附件先隐藏，点击章节标题再展开/折叠
+        const open = "";
+        const hidden = "hidden";
+        return `
+        <div class="chapter" style="animation-delay:${Math.min(i * 30, 240)}ms">
+          <div class="chapter-head ${open}" id="head${i}" onclick="toggleChapter('ch${i}')">
+            <span class="chev">▶</span>
+            <h4>${esc(ch.title || ("章节 " + (i + 1)))}</h4>
+            <span class="cnt">${cnt} 个文件</span>
+          </div>
+          <div class="chapter-body" id="ch${i}" ${hidden}>${actHtml}</div>
+        </div>`;
+      }).join("");
+    }
+  } else {
+    chHtml = `<div class="empty">章节加载失败：${esc(cwRes.error || "未知错误")}</div>`;
+  }
+
+  // ---- 作业 ----
+  DETAIL_HW = (hwRes.ok ? (hwRes.homeworks || []) : []);
+  DETAIL_HW_ONLY = false;
+  if (!hwRes.ok) DETAIL_HW = [{_error: hwRes.error || "未知错误"}];
+
+  // ---- 课堂录播（智云课堂）----
+  for (const k in DETAIL_LIVES) delete DETAIL_LIVES[k];
+  const lives = (lvRes.ok ? (lvRes.lives || []) : []);
+  let livesHtml = "";
+  if (lvRes.ok && lives.length) {
+    livesHtml = lives.map(l => liveRowHtml(l)).join("");
+  }
+
+  $("#detailBody").innerHTML = `
+    <div class="detail-layout">
+      <div class="detail-content">
+        <div class="detail-sec" id="sec-hw">
+          <h3 class="sec-title">📝 作业
+            <span class="toggle" id="hwToggle" onclick="toggleSubmittedOnly()">只看已提交</span>
+          </h3>
+          <div id="hwBox"></div>
+        </div>
+        <div class="detail-sec" id="sec-ch">
+          <h3 class="sec-title">📚 章节与资源</h3>
+          <div id="chBox">${chHtml}</div>
+        </div>
+        ${livesHtml ? `
+        <div class="detail-sec" id="sec-live">
+          <h3 class="sec-title">🎥 课堂录播
+            <span class="toggle" style="cursor:default">智云课堂 · 共 ${lives.length} 节</span>
+          </h3>
+          <div id="liveBox">${livesHtml}</div>
+        </div>` : ""}
+      </div>
+      <nav class="detail-toc" id="toc"><div class="toc-h">目录</div></nav>
+    </div>`;
+
+  renderHomeworkBox();
+
+  buildToc(chapters, !!livesHtml);
+
+  const hwN = (hwRes.ok ? DETAIL_HW.length : 0);
+  const chN = chapters.length;
+  const lvN = livesHtml ? lives.length : 0;
+  $("#detailMeta").textContent =
+    `共 ${hwN} 项作业 · ${chN} 个章节` + (lvN ? ` · ${lvN} 节录播` : "");
+}
+
+// ---- 课堂录播（智云课堂）----
+// 列表来自学在浙大 extension-lives；「导出PPT」走后端 /api/lives/export_ppt，
+// 复刻智云课堂网页端官方导出（生成的是原生 PPT，非截图拼合）。
+const DETAIL_LIVES = {};   // sub_id -> 录播条目（给导出按钮取 page_view_url 等）
+const LIVE_STATUS_CN = {expired: "已结束", living: "直播中", notStarted: "未开始", notstarted: "未开始"};
+function liveRowHtml(l) {
+  DETAIL_LIVES[l.sub_id] = l;
+  // 标题形如「课程名/教室/2026-03-02第6-9节」→ 拆出日期节次与教室
+  const parts = (l.title || "").split("/");
+  const when = parts.length > 1 ? parts[parts.length - 1] : (l.start_time || "");
+  const place = parts.length > 2 ? parts[parts.length - 2] : "";
+  const st = LIVE_STATUS_CN[l.status] || l.status || "";
+  const durTxt = l.duration_min >= 60
+    ? `${Math.floor(l.duration_min / 60)}小时${l.duration_min % 60 ? (l.duration_min % 60) + "分" : ""}`
+    : (l.duration_min ? l.duration_min + "分钟" : "");
+  return `<div class="file live">
+    <span class="fname">${esc(when)}${place ? `<span class="ftype">${esc(place)}</span>` : ""}<span class="ftype">${esc(st)}${durTxt ? " · " + durTxt : ""}</span></span>
+    <a class="dl pv" href="${esc(l.page_view_url)}" target="_blank" rel="noopener" title="在智云课堂网页打开回放">回放</a>
+    <button class="dl" onclick="exportLivePpt('${esc(l.sub_id)}', this)" title="调智云课堂官方导出，原生 PPT 存到下载文件夹/课程名/">导出PPT</button>
+  </div>`;
+}
+
+async function exportLivePpt(subId, btn) {
+  const l = DETAIL_LIVES[subId];
+  if (!l) return;
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = "生成中…";
+  showToast("已向智云课堂发起 PPT 导出，首次生成约需 1-3 分钟，请留意提示…", "info", 6000);
+  try {
+    const q = "sub_id=" + encodeURIComponent(subId)
+      + "&url=" + encodeURIComponent(l.page_view_url || "")
+      + "&course=" + encodeURIComponent(DETAIL_COURSE_NAME || "")
+      + "&name=" + encodeURIComponent(l.title || "");
+    const r = await fetch("/api/lives/export_ppt?" + q, {
+      method: "POST",
+      headers: { "X-Zjucourse-Token": window.TOKEN }
+    });
+    const d = await r.json();
+    if (d.ok) showToast("PPT 导出完成，已保存到：" + d.path, "ok", 9000);
+    else showToast(d.error || "导出失败", "err", 8000);
+  } catch (e) {
+    showToast("导出出错：" + e, "err", 6000);
+  }
+  btn.disabled = false; btn.textContent = old;
+}
+
+// 详情页作业列表（当前课程）。已提交的高亮并展示提交详情。
+let DETAIL_HW = [];
+let DETAIL_HW_ONLY = false;
+let DETAIL_COURSE_ID = null;
+let DETAIL_COURSE_NAME = "";
+
+// 把一次作业的「提交记录」渲染成可展开的版本列表。
+// 后端 /api/course-homework 现在返回 submissions 数组（浙大保留每次提交，
+// 官方页用“提交版本”下拉切换）：第一版即最新提交，每版有提交时间/成绩/评语/
+// 附件/老师的批改附件(submission_correct)。旧数据没有 submissions 时回退成单条。
+function submissionsHtml(x) {
+  const vers = (x.submissions && x.submissions.length) ? x.submissions : [{
+    submitted_at: x.submitted_at, grade: x.grade, comment: x.comment,
+    uploads: x.submitted_uploads || [], correct_uploads: []
+  }];
+  const fmtT = s => s ? String(s).replace("T", " ").replace("Z", "") : "—";
+  const gradeOf = g => (g !== null && g !== undefined && g !== "") ? esc(String(g)) : "—";
+  const total = vers.length;
+
+  const rows = vers.map((v, i) => {
+    const label = total > 1
+      ? (i === 0 ? "🔴 最新提交" : "提交版本 " + (total - i))
+      : "提交记录";
+    const myFiles = (v.uploads && v.uploads.length)
+      ? v.uploads.map(u => fileItemHtml(u)).join("")
+      : `<div class="empty">该次提交未附带文件</div>`;
+    const correct = (v.correct_uploads && v.correct_uploads.length)
+      ? `<div class="blk-title">📎 老师批改附件：</div>${v.correct_uploads.map(u => fileItemHtml(u)).join("")}`
+      : "";
+    return `
+      <details class="subver ${i === 0 ? "latest" : ""}">
+        <summary class="subver-head">
+          <span class="subver-label">${label}</span>
+          <span class="subver-time">🕒 ${fmtT(v.submitted_at)}</span>
+          <span class="grade-tag">成绩：${gradeOf(v.grade)}</span>
+        </summary>
+        <div class="subver-body">
+          ${v.instructor_comment ? `<div class="subcomment"><span class="sc-label">老师评语：</span>${safeHtml(v.instructor_comment)}</div>` : ""}
+          ${v.comment ? `<div class="subcomment"><span class="sc-label">我的留言：</span>${safeHtml(v.comment)}</div>` : ""}
+          <div class="blk-title">我提交的文件：</div>
+          ${myFiles}
+          ${correct}
+        </div>
+      </details>`;
+  }).join("");
+
+  return `<div class="subver-list">${rows}</div>`;
+}
+
+// 详情页作业列表（当前课程）。按 进行中/未开始/已结束 分组，
+// 只有「进行中」的作业带提交文件入口；标题徽标已表示提交状态，
+// 卡片中间不再重复“✅ 已提交”横幅。
+function renderHomeworkBox() {
+  const box = document.getElementById("hwBox");
+  if (!box) return;
+  const tog = document.getElementById("hwToggle");
+  if (tog) tog.textContent = DETAIL_HW_ONLY ? "显示全部" : "只看已提交";
+
+  if (DETAIL_HW[0] && DETAIL_HW[0]._error) {
+    box.innerHTML = emptyBox("⚠️", "作业加载失败：" + esc(DETAIL_HW[0]._error));
+    return;
+  }
+  if (!DETAIL_HW.length) {
+    box.innerHTML = emptyBox("📝", "这门课暂未发布作业。");
+    return;
+  }
+  const list = DETAIL_HW_ONLY ? DETAIL_HW.filter(x => x.submitted) : DETAIL_HW;
+  if (!list.length) {
+    box.innerHTML = emptyBox("🗂️", "没有符合条件的作业。");
+    return;
+  }
+
+  const st = x => x.status || "ongoing";
+  const groups = [
+    ["ongoing",     "🔄 进行中", list.filter(x => st(x) === "ongoing")],
+    ["not_started", "⏳ 未开始", list.filter(x => st(x) === "not_started")],
+    ["ended",       "✅ 已结束", list.filter(x => st(x) === "ended")],
+  ].filter(g => g[2].length);
+
+  const fmtT = s => (s || "").replace("T", " ").replace("Z", "");
+  const hwCard = (x, delay = 0) => {
+    const cd = countdown(x.deadline);
+    const filesHtml = (x.uploads && x.uploads.length) ? x.uploads.map(u => fileItemHtml(u)).join("") : "";
+    const ongoing = st(x) === "ongoing";
+    const notStarted = st(x) === "not_started";
+    const soon = dueSoon(x);
+    return `
+    <div class="hw2 ${x.submitted ? "done" : "todo"} ${soon ? "remind" : ""}" style="animation-delay:${delay}ms">
+      <div class="t">${esc(x.title)}
+        <span class="badge ${x.submitted ? "ok" : "no"}">${x.submitted ? "已提交" : "未提交"}</span>
+        ${soon ? `<span class="badge soon">⏰ 即将截止</span>` : ""}
+      </div>
+      <div class="ddl ${cd.over ? "over" : ""}">截止：<b>${fmtT(x.deadline || x.end_time)}</b> · <span class="cd" data-iso="${esc(x.deadline || x.end_time || "")}">${cd.text}</span></div>
+      ${notStarted && x.start_time ? `<div class="ddl">开始：<b>${fmtT(x.start_time)}</b></div>` : ""}
+      ${x.description ? `<div class="desc">${safeHtml(x.description)}</div>` : ""}
+      ${filesHtml ? `<div class="blk-title">作业附件：</div>${filesHtml}` : ""}
+      ${x.submitted ? submissionsHtml(x) : ""}
+      ${ongoing ? `
+      <div class="submit">
+        <label class="btn pick"><input type="file" multiple /><span>📎 选择文件</span></label>
+        <button class="btn primary" onclick="submitHWDetail(${x.id}, this)">提交作业</button>
+        <div class="chips" hidden></div>
+        <textarea class="hw-note" placeholder="文本输入"></textarea>
+        <div class="submit-hint">ℹ️ 仅显示最后一次提交，提交后请到「学在浙大」确认</div>
+        <div class="submit-msg"></div>
+      </div>` : ""}
+    </div>`;
+  };
+
+  let seq = 0;
+  box.innerHTML = groups.map(([key, label, arr]) => `
+    <div class="hw-grp">
+      <div class="hw-grp-title">${label} <span class="count">${arr.length}</span></div>
+      ${arr.map(x => hwCard(x, Math.min(seq++ * 22, 264))).join("")}
+    </div>`).join("");
+  refreshCountdowns();
+}
+
+function toggleSubmittedOnly() {
+  DETAIL_HW_ONLY = !DETAIL_HW_ONLY;
+  renderHomeworkBox();
+}
+
+function toggleChapter(id) {
+  const body = document.getElementById(id);
+  if (!body) return;
+  const head = body.previousElementSibling;
+  const willOpen = body.hasAttribute("hidden");
+  if (willOpen) {
+    body.removeAttribute("hidden");
+    head.classList.add("open");
+  } else {
+    body.setAttribute("hidden", "");
+    head.classList.remove("open");
+  }
+  syncTocFor(id, willOpen);
+  // 同步：折叠/展开章节时，目录里它下挂的活动小标题一起收起/显示
+  setTocChapterOpen(parseInt(id.slice(2), 10), willOpen);
+}
+
+// 控制右侧目录中某章节下挂的所有活动小标题显隐
+function setTocChapterOpen(ci, open) {
+  const prefix = "act-" + ci + "-";
+  document.querySelectorAll('#toc .toc-item.toc-act').forEach(b => {
+    if ((b.dataset.target || "").indexOf(prefix) === 0) {
+      if (open) b.removeAttribute("hidden");
+      else b.setAttribute("hidden", "");
+    }
+  });
+}
+
+// 点击活动小标题，展开/折叠该活动下的文件
+function toggleActivity(id) {
+  const body = document.getElementById(id);
+  if (!body) return;
+  const head = body.previousElementSibling;
+  const willOpen = body.hasAttribute("hidden");
+  if (willOpen) {
+    body.removeAttribute("hidden");
+    head.classList.add("open");
+  } else {
+    body.setAttribute("hidden", "");
+    head.classList.remove("open");
+  }
+  syncTocFor(id, willOpen);
+}
+
+// 让右侧目录的对应项与章节/活动展开/折叠状态保持一致
+function syncTocFor(targetId, open) {
+  const b = document.querySelector('#toc .toc-item[data-target="' + targetId + '"]');
+  if (b) b.classList.toggle("open", open);
+}
+
+// ---- 详情页左侧大纲目录 ----
+let _tocObserver = null;
+function buildToc(items, hasLives) {
+  const toc = document.getElementById("toc");
+  if (!toc) return;
+  let html = '<div class="toc-h">目录</div>';
+  html += '<button class="toc-item" data-target="sec-hw"><span class="tdot">●</span>作业</button>';
+  if (hasLives) {
+    html += '<button class="toc-item" data-target="sec-live"><span class="tdot">●</span>课堂录播</button>';
+  }
+  items.forEach((c, i) => {
+    const t = c.title || ("章节 " + (i + 1));
+    // 章节目录项带折叠箭头，状态与正文章节同步
+    html += `<button class="toc-item toc-ch" data-target="ch${i}"><span class="tchev">▶</span>${esc(t)}</button>`;
+    (c.activities || []).forEach((a, j) => {
+      const at = a.title || "资源";
+      // 活动小标题也进目录；默认随所属章节折叠，故初始隐藏
+      html += `<button class="toc-item toc-act" data-target="act-${i}-${j}" hidden><span class="tchev">▶</span>${esc(at)}</button>`;
+    });
+  });
+  toc.innerHTML = html;
+  toc.querySelectorAll(".toc-item").forEach(b => {
+    b.onclick = () => onTocClick(b.dataset.target);
+  });
+  setActiveToc(items.length ? "ch0" : "sec-hw");
+  setupTocObserver(items);
+}
+
+// 点击右侧目录：章节项与正文同步展开/折叠；折叠态点击→展开并滚动到该章
+function onTocClick(id) {
+  if (id.indexOf("act-") === 0) {
+    // 点击活动小标题：先确保所属章节展开（折叠时点目录会自动展开章节+显示其下小标题）
+    const parts = id.split("-");
+    if (parts.length < 3) return;
+    const ci = +parts[1];
+    const aj = +parts[2];
+    const chBody = document.getElementById("ch" + ci);
+    if (chBody && chBody.hasAttribute("hidden")) toggleChapter("ch" + ci);
+    const body = document.getElementById(id);
+    if (!body) return;
+    const head = document.getElementById("act-head-" + ci + "-" + aj);
+    const isHidden = body.hasAttribute("hidden");
+    if (isHidden) {
+      body.removeAttribute("hidden");
+      if (head) head.classList.add("open");
+      syncTocFor(id, true);
+      (head || body).scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      body.setAttribute("hidden", "");
+      if (head) head.classList.remove("open");
+      syncTocFor(id, false);
+    }
+    setActiveToc(id);
+  } else if (id.indexOf("ch") === 0) {
+    const body = document.getElementById(id);
+    if (!body) return;
+    const head = document.getElementById("head" + id.slice(2));
+    // 折叠/展开章节（同时联动目录里的小标题显隐）
+    toggleChapter(id);
+    if (head && body.hasAttribute("hidden") === false) {
+      head.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    setActiveToc(id);
+  } else {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveToc(id);
+  }
+}
+
+function setActiveToc(id) {
+  document.querySelectorAll("#toc .toc-item").forEach(b => {
+    b.classList.toggle("active", b.dataset.target === id);
+  });
+}
+
+function setupTocObserver(items) {
+  if (_tocObserver) { _tocObserver.disconnect(); _tocObserver = null; }
+  const root = document.getElementById("detail");
+  const cb = (entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      let id = e.target.id;
+      if (id.indexOf("act-head-") === 0) {
+        // act-head-i-j -> act-i-j
+        const p = id.split("-");  // ["act","head",i,j]
+        id = "act-" + p[2] + "-" + p[3];
+      } else if (id.indexOf("head") === 0) {
+        id = "ch" + id.slice(4);  // head0 -> ch0
+      }
+      setActiveToc(id);
+    });
+  };
+  const opt = { root, rootMargin: "-12% 0px -70% 0px", threshold: 0 };
+  _tocObserver = new IntersectionObserver(cb, opt);
+  const hw = document.getElementById("sec-hw");
+  if (hw) _tocObserver.observe(hw);
+  (items || []).forEach((c, i) => {
+    const h = document.getElementById("head" + i);
+    if (h) _tocObserver.observe(h);
+    (c.activities || []).forEach((a, j) => {
+      const ah = document.getElementById("act-head-" + i + "-" + j);
+      if (ah) _tocObserver.observe(ah);
+    });
+  });
+}
+
+// 桌面版（pywebview 外壳）里 WebView2 不支持网页触发的「另存为」，
+// <a download> 点了没反应——所以桌面版改为后端直接写进下载文件夹。
+const inDesktop = () => !!(window.pywebview && window.pywebview.api);
+// pywebview 的 js API 注入比页面加载稍晚，等到它就绪再判断
+async function ensurePv() {
+  if (window.pywebview && !window.pywebview.api)
+    await new Promise(r => window.addEventListener("pywebviewready", r, { once: true }));
+  return inDesktop();
+}
+
+// 右下角轻提示：type 可选 info（默认蓝）/ ok（绿）/ err（红），autoMs 后自动消失
+function showToast(msg, type = "info", autoMs = 4000) {
+  const el = document.createElement("div");
+  el.className = "toast " + (type === "info" ? "" : type);
+  el.textContent = msg;
+  $("#toastWrap").appendChild(el);
+  setTimeout(() => {
+    el.classList.add("out");
+    setTimeout(() => el.remove(), 350);
+  }, autoMs);
+}
+
+async function downloadUpload(uploadId) {
+  const name = DETAIL_FILES[uploadId] || "";
+  const label = name || ("file_" + uploadId);
+  const course = DETAIL_COURSE[uploadId] || "";
+  // 统一走「后端直接写盘」通道：本地服务与浏览器同机，这样
+  // 设置里的下载文件夹（含课程子文件夹）在浏览器模式下同样生效。
+  // （浏览器原生「另存为」只认浏览器自己的下载位置，无视我们的设置。）
+  showToast("开始下载：" + label);
+  try {
+    const r = await fetch("/api/save_download/" + uploadId + "?name=" + encodeURIComponent(name)
+                          + "&course=" + encodeURIComponent(course), {
+      method: "POST",
+      headers: { "X-Zjucourse-Token": window.TOKEN }
+    });
+    const d = await r.json();
+    if (d.ok) showToast("下载完成，已保存到：" + d.path, "ok", 7000);
+    else showToast(d.error || "下载失败", "err", 6000);
+  } catch (e) {
+    showToast("下载出错：" + e, "err", 6000);
+  }
+}
+
+// ---------- 浮窗（课程详情 / 成绩查询共用）开关 ----------
+function openMask(el) {
+  el.style.display = "flex";
+  document.body.style.overflow = "hidden";   // 锁住背后主页的滚动
+  const b = el.querySelector(".course-body");
+  if (b) b.scrollTop = 0;
+}
+function closeMask(el) {
+  el.style.display = "none";
+  const anyOpen = [...document.querySelectorAll(".course-mask")]
+    .some(m => m.style.display !== "none");
+  if (!anyOpen) document.body.style.overflow = "";
+}
+function showDetailModal() { openMask($("#detail")); }
+function closeDetailModal() { closeMask($("#detail")); }
+$("#detailClose").onclick = closeDetailModal;
+// 不再点遮罩关闭：课程详情只通过右上角 × 关闭，避免误点黑色区域直接回到主页
+
+// ---------- 成绩查询（ETA 教务总成绩 + 分学期绩点分析） ----------
+// 绩点/分数 → 颜色等级（>=4.5 或 >=90 绿，>=3.5 或 >=80 蓝，>=2.4 或 >=70 黄，其余红）
+function gpaCls(v) { return v >= 4.5 ? "g-c-g" : v >= 3.5 ? "g-c-b" : v >= 2.4 ? "g-c-a" : v > 0 ? "g-c-r" : "g-c-n"; }
+function dotCls(v) { return v >= 4.5 ? "dot-g" : v >= 3.5 ? "dot-b" : v >= 2.4 ? "dot-a" : v > 0 ? "dot-r" : "dot-n"; }
+function scoreCls(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return "g-c-n";
+  return n >= 90 ? "g-c-g" : n >= 80 ? "g-c-b" : n >= 70 ? "g-c-a" : "g-c-r";
+}
+function fmtGpa(v) { return (v || 0).toFixed(2); }
+function fmtCr(v) { return v > 0 ? (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) : "—"; }
+
+async function openGrades(force) {
+  openMask($("#gradeModal"));
+  const body = $("#gradeBody"), meta = $("#gradeMeta");
+  // 已有成绩数据：先秒显，再后台同步最新（随课程数据刷新时也会自动更新）
+  if (GRADES) {
+    renderGrades(GRADES);
+    meta.textContent = "已显示本地成绩，正在同步教务系统最新数据…";
+    refreshGrades(force);
+    return;
+  }
+  meta.textContent = "正在从教务系统拉取成绩…";
+  body.innerHTML = skeletonHtml("hw", 3);
+  try {
+    const res = await api("/api/grades" + (force ? "?force=1" : ""));
+    if (res.ok) { GRADES = res; renderGrades(res); }
+    else {
+      meta.textContent = "";
+      body.innerHTML = emptyBox("⚠️", (res.error || "获取失败") + "，可点右上角重新登录后再试");
+    }
+  } catch (e) {
+    meta.textContent = "";
+    body.innerHTML = emptyBox("⚠️", "获取失败：" + e);
+  }
+}
+
+// 拉取最新成绩并存入本地；弹窗开着就原地更新（不闪骨架屏）。
+// 由 loadData（首载 / 点刷新 / 每 2 分钟自动）随课程数据一起触发。
+async function refreshGrades(force) {
+  let ok = false;
+  try {
+    const res = await api("/api/grades" + (force ? "?force=1" : ""));
+    if (res.ok) {
+      ok = true;
+      GRADES = res;
+      if ($("#gradeModal").style.display !== "none") renderGrades(res);
+    }
+  } catch (e) { /* 静默失败：不打扰课程/作业的主流程 */ }
+  // 弹窗开着但同步没成功时，别让「正在同步」的提示一直挂着
+  if (!ok && GRADES && $("#gradeModal").style.display !== "none") {
+    $("#gradeMeta").textContent = "同步失败，当前显示的是本地缓存成绩";
+  }
+}
+function renderGrades(data) {
+  const grades = data.grades || [];
+  const analysis = data.analysis || [];
+  const total = data.total;
+  const body = $("#gradeBody");
+  if (!grades.length) {
+    $("#gradeMeta").textContent = "共 0 门课程成绩";
+    body.innerHTML = emptyBox("📭", "教务系统里还没有成绩记录");
+    return;
+  }
+  $("#gradeMeta").textContent =
+    `共 ${grades.length} 门课程成绩 · 数据来自 ETA 平台`;
+
+  // 统计卡：大字五分制均绩（Celechron 口径：学分加权、剔除不计绩点课程）
+  const TIER_CLS = { "g-c-g": "c-g", "g-c-b": "c-b", "g-c-a": "c-a", "g-c-r": "c-r", "g-c-n": "c-b" };
+  const anaCard = (a, full, i) => {
+    const tier = full ? "c-total" : TIER_CLS[gpaCls(a.gpa)] || "c-b";
+    return `
+    <div class="g-ana-card ${tier}" style="animation-delay:${Math.min(i * 45, 220)}ms${full ? ";flex:1 1 220px;max-width:300px" : ""}">
+      <div class="ga-name">${esc(a.xn)} · ${esc(a.xq)}</div>
+      <span class="ga-gpa ${gpaCls(a.gpa)}">${fmtGpa(a.gpa)}</span>
+      <div class="ga-chips">
+        <span class="ga-chip">GPA学分 ${fmtCr(a.credit)} · 获得 ${fmtCr(a.earnedCredit)}</span>
+        <span class="ga-chip">4.3分制 ${fmtGpa(a.gpa4)} · 百分制 ${a.gpa100 ? a.gpa100.toFixed(1) : "—"}</span>
+      </div>
+    </div>`;
+  };
+  const anaHtml = (analysis.length || total)
+    ? `<div class="g-ana">` + analysis.map((a, i) => anaCard(a, false, i)).join("")
+      + (total ? anaCard(total, true, analysis.length) : "") + `</div>`
+    : "";
+
+  // 按「学年 · 学期」分组展示（后端已按时间倒序返回）
+  const secs = [];
+  for (const r of grades) {
+    const key = `${r.xn} · ${r.xq}`;
+    if (!secs.length || secs[secs.length - 1].key !== key) secs.push({ key, rows: [] });
+    secs[secs.length - 1].rows.push(r);
+  }
+  const listHtml = secs.map((s, si) => `
+    <div class="g-sec"><span>${esc(s.key || "未知学期")}</span><span class="g-bar"></span><span style="color:var(--muted);font-weight:400">${s.rows.length} 门</span></div>
+    ` + s.rows.map((r, ri) => {
+      const inc = r.gpaIncluded !== false;
+      const g = parseFloat(r.grade);
+      const cv = isNaN(g) ? r.grade : g;
+      const gc = inc ? scoreCls(String(cv)) : "g-c-n";
+      const gpa = r.gpa || 0;
+      const meta = inc
+        ? `绩点 ${fmtGpa(gpa)} · 学分 ${esc(fmtCr(parseFloat(r.credit)))}`
+        : "不计入绩点";
+      return `
+      <div class="g-row ${inc ? "" : "off"}" ${inc ? "" : 'title="弃修/缓考/二级制等不计入绩点"'} style="animation-delay:${Math.min((si * 5 + ri) * 18, 240)}ms">
+        <span class="g-dot ${inc ? dotCls(gpa) : "dot-n"}"></span>
+        <span class="g-name" title="${esc(r.name)}">${esc(r.name)}</span>
+        <span class="g-meta">${esc(meta)}</span>
+        <span class="g-val ${gc}">${esc(String(cv))}</span>
+      </div>`;
+    }).join("")).join("");
+
+  body.innerHTML =
+    `<div class="g-tool"><button class="btn" onclick="openGrades(true)"><span class="ic" aria-hidden="true">↻</span> 刷新成绩</button></div>`
+    + anaHtml + listHtml;
+}
+$("#gradeBtn").onclick = () => openGrades(false);
+$("#gradeClose").onclick = () => closeMask($("#gradeModal"));
+// 不再点遮罩关闭：成绩弹窗只通过右上角 × 关闭
+
+// 多文件提交作业：逐个转 base64 → 一次 /api/submit 提交（后端合成一次上交）。
+// msgEl 为进度/结果提示元素；done() 在成功后回调（刷新对应视图）。
+async function uploadAndSubmit(hwId, input, btn, msgEl, done) {
+  const files = [...input.files];
+  if (!files.length) { alert("请先选择要提交的文件（可按住 Ctrl / Shift 多选）"); return; }
+  // 同一块提交区里的备注框（可选）
+  const noteEl = input.closest(".submit")?.querySelector(".hw-note");
+  const note = (noteEl && noteEl.value || "").trim();
+  btn.disabled = true; input.disabled = true; if (noteEl) noteEl.disabled = true;
+  const payload = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      msgEl.className = "submit-msg busy";
+      msgEl.textContent = `上传中 ${i + 1}/${files.length}：${files[i].name}`;
+      payload.push({ filename: files[i].name, b64: await fileToB64(files[i]) });
+    }
+    msgEl.className = "submit-msg busy";
+    msgEl.textContent = "正在提交作业…";
+    const res = await api("/api/submit", {
+      method: "POST",
+      body: JSON.stringify({ homework_id: hwId, files: payload, comment: note })
+    });
+    if (res.ok) {
+      msgEl.className = "submit-msg ok";
+      msgEl.textContent = `✅ 提交成功（${res.files.length} 个文件${note ? "，含备注" : ""}）：${res.files.map(esc).join("、")} · 请到「学在浙大」确认`;
+      input.value = "";
+      updateChips(input);
+      if (noteEl) noteEl.value = "";
+      done();
+    } else {
+      msgEl.className = "submit-msg err";
+      msgEl.textContent = "❌ 提交失败：" + (res.error || "未知错误");
+    }
+  } catch (e) {
+    msgEl.className = "submit-msg err";
+    msgEl.textContent = "❌ 提交失败：" + e;
+  }
+  btn.disabled = false; input.disabled = false; if (noteEl) noteEl.disabled = false;
+  btn.textContent = "提交作业";
+}
+
+// 首页作业卡片提交：成功后刷新全局数据（徽标/已提交文件随之更新）
+function submitHW(hwId, btn) {
+  const box = btn.closest(".submit");
+  const input = box.querySelector("input[type=file]");
+  const msg = document.getElementById("submit-msg-" + hwId);
+  uploadAndSubmit(hwId, input, btn, msg, () => loadData(true));
+}
+
+// 首页作业卡片：跳转到对应课程详情页看提交文件
+function viewHwFiles(courseId) {
+  const c = DATA.courses.find(o => o.id === courseId);
+  openDetail(courseId, c ? c.name : "");
+}
+
+// 课程详情页提交：成功后重新拉取该课程作业并重渲染
+async function submitHWDetail(hwId, btn) {
+  const box = btn.closest(".submit");
+  const input = box.querySelector("input[type=file]");
+  const msg = box.querySelector(".submit-msg");
+  await uploadAndSubmit(hwId, input, btn, msg, async () => {
+    const hwRes = await api("/api/course-homework?course_id=" + encodeURIComponent(DETAIL_COURSE_ID));
+    DETAIL_HW = (hwRes.ok ? (hwRes.homeworks || []) : [{ _error: hwRes.error || "未知错误" }]);
+    renderHomeworkBox();
+  });
+}
+
+function fileToB64(file) {
+  return new Promise((ok) => {
+    const r = new FileReader();
+    r.onload = () => ok(r.result.split(",")[1]);
+    r.readAsDataURL(file);
+  });
+}
+
+function showDashboard() {
+  $("#login").style.display = "none";
+  $("#app").style.display = "flex";
+  loadData();
+}
+
+async function boot() {
+  const st = await api("/api/status");
+  if (st.ok && st.logged_in) showDashboard();
+}
+boot();
+
+$("#loginBtn").onclick = async () => {
+  const stuid = $("#stuid").value.trim();
+  const pwd = $("#pwd").value;
+  $("#loginErr").textContent = "";
+  if (!stuid || !pwd) { $("#loginErr").textContent = "请输入学号和密码"; return; }
+  $("#loginBtn").disabled = true; $("#loginBtn").textContent = "登录中…";
+  const t0 = performance.now();
+  const res = await api("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ stuid, password: pwd })
+  });
+  $("#loginBtn").disabled = false; $("#loginBtn").textContent = "登录";
+  $("#pwd").value = "";
+  if (res.ok) showDashboard();
+  else $("#loginErr").textContent = res.error || "登录失败";
+};
+$("#pwd").addEventListener("keydown", e => { if (e.key === "Enter") $("#loginBtn").click(); });
+
+// ---- 设置浮窗 + 主题模式（light / dark / system） ----
+// localStorage["zc-theme"] 存的是「模式」；html[data-theme] 始终是解析后的实际主题。
+const themeMedia = matchMedia("(prefers-color-scheme: dark)");
+function resolveTheme(mode) {
+  return mode === "system" ? (themeMedia.matches ? "dark" : "light") : mode;
+}
+function applyThemeMode(mode) {
+  document.documentElement.dataset.theme = resolveTheme(mode);
+  try { localStorage.setItem("zc-theme", mode); } catch (e) {}
+  document.querySelectorAll("#themeSeg button").forEach(b =>
+    b.classList.toggle("active", b.dataset.v === mode));
+}
+let themeMode = "system";
+try { themeMode = localStorage.getItem("zc-theme") || "system"; } catch (e) {}
+if (!["light", "dark", "system"].includes(themeMode)) themeMode = "system";
+applyThemeMode(themeMode);
+// 跟随系统时，操作系统切换深浅色要实时生效
+themeMedia.addEventListener("change", () => {
+  if (themeMode === "system") applyThemeMode("system");
+});
+
+const settingsMask = $("#settingsMask");
+function openSettings() {
+  settingsMask.style.display = "flex";
+  applyThemeMode(themeMode);
+  loadDlDir();
+}
+function closeSettings() { settingsMask.style.display = "none"; }
+$("#settingsBtn").onclick = openSettings;
+$("#settingsBtnLogin").onclick = openSettings;
+$("#settingsClose").onclick = closeSettings;
+// 不再点遮罩关闭：设置浮窗只通过右上角 × 关闭
+$("#themeSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  themeMode = b.dataset.v;
+  applyThemeMode(themeMode);
+});
+
+// ---- 下载文件夹设置 ----
+async function loadDlDir() {
+  try {
+    const r = await fetch("/api/download_dir", { headers: { "X-Zjucourse-Token": window.TOKEN } });
+    const d = await r.json();
+    if (d.ok) $("#dlDirText").textContent = d.dir || "系统默认";
+  } catch (e) {}
+}
+$("#dlDirBtn").onclick = async () => {
+  let dir = "";
+  if (await ensurePv()) {
+    // 桌面版：弹系统原生「选择文件夹」对话框
+    dir = (await window.pywebview.api.choose_folder()) || "";
+    if (!dir) return;
+  } else {
+    // 浏览器版：让本地服务代弹 Windows 原生「选择文件夹」窗口
+    showToast("正在打开文件夹选择窗口…（若没看到，请检查任务栏）");
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 120000);
+      const r = await fetch("/api/pick_dir", {
+        method: "POST",
+        headers: { "X-Zjucourse-Token": window.TOKEN },
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      const d = await r.json();
+      if (d.cancelled) return;
+      if (!d.ok) { showToast(d.error || "无法打开选择窗口", "err", 8000); return; }
+      dir = d.dir;
+    } catch (e) {
+      if (e && e.name === "AbortError")
+        showToast("选择窗口超时未关闭，请重试", "err", 8000);
+      else
+        showToast("打开选择窗口出错：" + e + "（若刚重启过服务，请刷新页面再试）", "err", 10000);
+      return;
+    }
+  }
+  try {
+    const r = await fetch("/api/download_dir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Zjucourse-Token": window.TOKEN },
+      body: JSON.stringify({ dir })
+    });
+    const d = await r.json();
+    if (!d.ok) alert(d.error || "设置失败");
+    $("#dlDirText").textContent = d.dir || "";
+  } catch (e) {
+    alert("设置出错：" + e);
+  }
+};
+
+$("#dlDirOpen").onclick = async () => {
+  try {
+    const r = await fetch("/api/open_download_dir", {
+      method: "POST",
+      headers: { "X-Zjucourse-Token": window.TOKEN }
+    });
+    const d = await r.json();
+    if (!d.ok) showToast(d.error || "无法打开文件夹", "err", 6000);
+  } catch (e) {
+    showToast("打开文件夹出错：" + e, "err", 6000);
+  }
+};
+
+// ---- 截止前提醒设置 ----
+function syncRemindUI() {
+  $("#remindOn").checked = remindCfg.on;
+  document.querySelectorAll("#remindSeg button").forEach(b =>
+    b.classList.toggle("active", +b.dataset.v === remindCfg.hours));
+  const row = $("#remindHoursRow");
+  row.style.opacity = remindCfg.on ? "" : ".45";
+  row.style.pointerEvents = remindCfg.on ? "" : "none";
+}
+function onRemindChanged() {
+  saveRemindCfg();
+  syncRemindUI();
+  renderHomeworks();          // 首页列表立即重刷
+  if (typeof renderHomeworkBox === "function" &&
+      $("#detail").style.display !== "none") renderHomeworkBox();
+}
+$("#remindOn").onchange = e => { remindCfg.on = e.target.checked; onRemindChanged(); };
+$("#remindSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-v]");
+  if (!b) return;
+  remindCfg.hours = +b.dataset.v;
+  onRemindChanged();
+});
+syncRemindUI();
+
+$("#refreshBtn").onclick = () => loadData(true);
+$("#semesterSel").onchange = () => { renderCourses(); renderHomeworks(); };
+$("#hwFilter").onchange = renderHomeworks;
+$("#courseSearch").oninput = renderCourses;
+$("#logoutBtn").onclick = async () => {
+  await api("/api/logout", { method: "POST" });
+  DATA = { courses: [], homeworks: [], activeIds: new Set() };
+  $("#app").style.display = "none";
+  $("#login").style.display = "flex";
+};
+// 每两分钟静默刷新一次（刷新会更新倒计时和提交状态）
+setInterval(() => { if ($("#app").style.display === "flex") loadData(); }, 120000);
+</script>
+
+</body>
+</html>
