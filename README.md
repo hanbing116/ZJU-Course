@@ -12,7 +12,7 @@
 
 ## 获取
 
-release中已打包好 exe 文件 `ZJU-Course.exe`，下载后放置桌面可直接使用。
+release中已打包好 exe 文件 `ZJU-Course.exe`，下载后解压放置桌面可直接使用。
 
 下载：https://github.com/hanbing116/ZJU-Course/releases/download/ZJU_course/ZC.zip
 
